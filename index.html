@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Angelkarte – Norwegen</title>
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:    #0a1628;
+      --deep:    #0d2040;
+      --ocean:   #0e3460;
+      --teal:    #0a8a6e;
+      --teal-lt: #12b08d;
+      --gold:    #e8b84b;
+      --gold-lt: #f5d17a;
+      --ice:     #d6eaf5;
+      --white:   #f0f6fc;
+      --muted:   #7a9ab8;
+      --danger:  #e85050;
+      --panel-bg: rgba(10, 22, 40, 0.92);
+      --border:   rgba(14, 52, 96, 0.7);
+    }
+
+    html, body { height: 100%; width: 100%; overflow: hidden; background: var(--navy); }
+
+    #map { position: absolute; inset: 0; z-index: 0; }
+
+    /* TOP BAR */
+    #topbar {
+      position: absolute; top: 0; left: 0; right: 0;
+      z-index: 1000;
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: linear-gradient(180deg, rgba(10,22,40,0.97) 80%, transparent);
+      pointer-events: none;
+    }
+    #topbar > * { pointer-events: auto; }
+
+    .app-title {
+      font-family: 'Georgia', serif;
+      font-size: 17px; font-weight: bold;
+      color: var(--gold);
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+      flex: 0 0 auto;
+    }
+    .app-title span { color: var(--teal-lt); font-size: 12px; font-weight: normal; letter-spacing: 0.1em; display: block; margin-top: 1px; }
+    .spacer { flex: 1; }
+
+    .btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel-bg);
+      color: var(--white);
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { background: var(--ocean); }
+
+    /* GPS STATUS */
+    #gpsStatus {
+      font-family: monospace; font-size: 11px;
+      color: var(--ice);
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      text-align: right;
+      min-width: 180px;
+      display: none;
+      position: absolute; bottom: 90px; right: 14px;
+      z-index: 1000;
+      white-space: pre;
+    }
+    #gpsStatus.visible { display: block; }
+
+    /* LAYER PANEL */
+    #layerPanel {
+      position: absolute; top: 60px; right: 14px;
+      z-index: 1000;
+      background: var(--panel-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      display: none;
+      min-width: 230px;
+    }
+    #layerPanel.open { display: block; }
+    #layerPanel h3 {
+      font-size: 11px; font-weight: bold;
+      color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .layer-option {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 4px;
+      color: var(--white);
+      font-size: 13px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .layer-option input[type=radio] { accent-color: var(--teal-lt); }
+
+    /* KML PANEL */
+    #kmlPanel {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      z-index: 1000;
+      background: var(--panel-bg);
+      border-top: 1px solid var(--border);
+      padding: 12px 14px 18px;
+      display: none;
+      max-height: 55vh;
+      overflow-y: auto;
+    }
+    #kmlPanel.open { display: block; }
+    #kmlPanel h3 {
+      font-size: 11px; font-weight: bold;
+      color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    #dropzone {
+      border: 2px dashed var(--ocean);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      margin-bottom: 10px;
+    }
+    #dropzone.drag-over { border-color: var(--teal-lt); background: rgba(10,138,110,0.1); color: var(--white); }
+    #dropzone svg { display: block; margin: 0 auto 8px; }
+    #fileInput { display: none; }
+
+    #kmlList { display: flex; flex-direction: column; gap: 6px; }
+    .kml-item {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(14,52,96,0.4);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .kml-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .kml-name { flex: 1; font-size: 13px; color: var(--white); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .kml-count { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .kml-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 0 2px; transition: color 0.1s; }
+    .kml-remove:hover { color: var(--danger); }
+
+    .toggle-sw {
+      width: 32px; height: 18px;
+      border-radius: 9px;
+      background: var(--ocean);
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-sw::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--muted);
+      top: 2px; left: 2px;
+      transition: left 0.2s, background 0.2s;
+    }
+    .toggle-sw.on { background: var(--teal); }
+    .toggle-sw.on::after { left: 16px; background: var(--white); }
+
+    /* BOTTOM NAV */
+    #bottomNav {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      z-index: 999;
+      display: flex;
+      background: var(--panel-bg);
+      border-top: 1px solid var(--border);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+    .nav-btn {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 9px 6px 7px;
+      color: var(--muted);
+      font-size: 10px; font-family: sans-serif;
+      cursor: pointer;
+      transition: color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      border: none; background: none;
+      gap: 4px;
+    }
+    .nav-btn.active { color: var(--teal-lt); }
+
+    /* GPS MARKER */
+    .gps-pulse {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: rgba(18,176,141,0.35);
+      display: flex; align-items: center; justify-content: center;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    .gps-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--teal-lt);
+      border: 2px solid white;
+      box-shadow: 0 0 6px rgba(18,176,141,0.8);
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(18,176,141,0.5); }
+      70%  { box-shadow: 0 0 0 12px rgba(18,176,141,0); }
+      100% { box-shadow: 0 0 0 0 rgba(18,176,141,0); }
+    }
+
+    .fish-marker {
+      width: 28px; height: 28px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid rgba(255,255,255,0.6);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    .fish-marker span { transform: rotate(45deg); font-size: 13px; }
+
+    /* Leaflet Popup */
+    .leaflet-popup-content-wrapper {
+      background: var(--panel-bg) !important;
+      border: 1px solid var(--border) !important;
+      color: var(--white) !important;
+      border-radius: 10px !important;
+    }
+    .leaflet-popup-tip { background: var(--panel-bg) !important; }
+    .leaflet-popup-content { margin: 10px 14px !important; }
+    .popup-title { font-weight: bold; color: var(--gold); margin-bottom: 4px; font-size: 14px; }
+    .popup-desc { color: var(--ice); font-size: 12px; line-height: 1.5; }
+
+    /* Toast */
+    #toast {
+      position: absolute; top: 70px; left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      z-index: 9999;
+      background: var(--teal);
+      color: white; font-size: 13px;
+      padding: 8px 16px; border-radius: 20px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .leaflet-control-zoom { border: 1px solid var(--border) !important; }
+    .leaflet-control-zoom a { background: var(--panel-bg) !important; color: var(--white) !important; border-color: var(--border) !important; }
+    .leaflet-control-zoom a:hover { background: var(--ocean) !important; }
+    .leaflet-control-attribution { background: rgba(10,22,40,0.75) !important; color: var(--muted) !important; font-size: 9px !important; }
+    .leaflet-control-attribution a { color: var(--teal-lt) !important; }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div id="topbar">
+  <div class="app-title">
+    ⚓ Angelkarte
+    <span>Norwegen · Seekarte</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnLayers" title="Kartenebenen">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+    Ebenen
+  </button>
+</div>
+
+<div id="layerPanel">
+  <h3>Kartenquelle</h3>
+  <label class="layer-option"><input type="radio" name="layer" value="sjokart" checked /> 🗺️ Kartverket Seekarte (NO)</label>
+  <label class="layer-option"><input type="radio" name="layer" value="topo" /> 🏔️ Kartverket Topografie</label>
+  <label class="layer-option"><input type="radio" name="layer" value="osm" /> 🌍 OpenStreetMap</label>
+  <label class="layer-option"><input type="radio" name="layer" value="esri" /> 🛰️ Satellitenbild (ESRI)</label>
+</div>
+
+<div id="gpsStatus"></div>
+
+<div id="kmlPanel">
+  <h3>KML Fangpunkte</h3>
+  <div id="dropzone">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    KML-Datei hierher ziehen<br/>
+    <small>oder tippen zum Auswählen</small>
+  </div>
+  <input type="file" id="fileInput" accept=".kml,.kmz" multiple />
+  <div id="kmlList"></div>
+</div>
+
+<div id="bottomNav">
+  <button class="nav-btn active" id="navMap">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+    Karte
+  </button>
+  <button class="nav-btn" id="navGps">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></svg>
+    GPS
+  </button>
+  <button class="nav-btn" id="navKml">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Punkte
+  </button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const tileLayers = {
+  sjokart: L.tileLayer(
+    'https://opencache.statkart.no/gatekeeper/gk/cache.aspx?service=WMTS&request=GetTile&version=1.0.0&style=default&tilematrixset=googlemaps&Layer=sjokartraster&Format=image/png&TileMatrix={z}&TileCol={x}&TileRow={y}',
+    { attribution: '© <a href="https://kartverket.no">Kartverket</a>', maxZoom: 19, minZoom: 3 }
+  ),
+  topo: L.tileLayer(
+    'https://opencache.statkart.no/gatekeeper/gk/cache.aspx?service=WMTS&request=GetTile&version=1.0.0&style=default&tilematrixset=googlemaps&Layer=topo4&Format=image/png&TileMatrix={z}&TileCol={x}&TileRow={y}',
+    { attribution: '© <a href="https://kartverket.no">Kartverket</a>', maxZoom: 19, minZoom: 3 }
+  ),
+  osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>', maxZoom: 19 }
+  ),
+  esri: L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    { attribution: '© <a href="https://esri.com">Esri</a>', maxZoom: 19 }
+  )
+};
+
+const map = L.map('map', {
+  center: [62.5, 7.0], zoom: 7,
+  zoomControl: true, attributionControl: true,
+  layers: [tileLayers.sjokart]
+});
+
+let currentLayer = 'sjokart';
+let kmlLayers = [];
+let gpsMarker = null, gpsCircle = null, gpsWatchId = null, gpsActive = false;
+const colors = ['#e8b84b','#12b08d','#e85050','#6c8ebf','#f5d17a','#a8d8a8','#ff9f7f'];
+
+// Ebenen-Switcher
+document.getElementById('btnLayers').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('layerPanel').classList.toggle('open');
+});
+document.querySelectorAll('[name=layer]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    map.removeLayer(tileLayers[currentLayer]);
+    currentLayer = radio.value;
+    map.addLayer(tileLayers[currentLayer]);
+    document.getElementById('layerPanel').classList.remove('open');
+  });
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('#layerPanel') && !e.target.closest('#btnLayers'))
+    document.getElementById('layerPanel').classList.remove('open');
+});
+
+// GPS
+function startGps() {
+  if (!navigator.geolocation) { showToast('GPS nicht verfügbar'); return; }
+  gpsActive = true;
+  document.getElementById('navGps').classList.add('active');
+  const statusEl = document.getElementById('gpsStatus');
+  statusEl.classList.add('visible');
+  statusEl.textContent = '⌛ GPS wird gesucht…';
+  if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
+  gpsWatchId = navigator.geolocation.watchPosition(pos => {
+    const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+    if (!gpsMarker) {
+      const icon = L.divIcon({
+        html: '<div class="gps-pulse"><div class="gps-dot"></div></div>',
+        className: '', iconSize: [22,22], iconAnchor: [11,11]
+      });
+      gpsMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map);
+      gpsCircle = L.circle([lat, lng], {
+        radius: accuracy, color: '#12b08d', fillColor: '#12b08d',
+        fillOpacity: 0.08, weight: 1, dashArray: '4 4'
+      }).addTo(map);
+      map.setView([lat, lng], Math.max(map.getZoom(), 13));
+    } else {
+      gpsMarker.setLatLng([lat, lng]);
+      gpsCircle.setLatLng([lat, lng]).setRadius(accuracy);
+    }
+    statusEl.textContent = `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)}\n± ${Math.round(accuracy)} m`;
+  }, err => {
+    showToast('GPS-Fehler: ' + err.message);
+    statusEl.textContent = '❌ GPS-Fehler';
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 3000 });
+}
+
+function stopGps() {
+  gpsActive = false;
+  if (gpsWatchId !== null) { navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId = null; }
+  if (gpsMarker) { map.removeLayer(gpsMarker); gpsMarker = null; }
+  if (gpsCircle) { map.removeLayer(gpsCircle); gpsCircle = null; }
+  document.getElementById('navGps').classList.remove('active');
+  document.getElementById('gpsStatus').classList.remove('visible');
+}
+
+document.getElementById('navGps').addEventListener('click', () => {
+  if (gpsActive) stopGps(); else startGps();
+});
+
+document.getElementById('navMap').addEventListener('click', () => {
+  if (gpsMarker) map.flyTo(gpsMarker.getLatLng(), Math.max(map.getZoom(), 14), { duration: 1 });
+});
+
+// KML Panel
+document.getElementById('navKml').addEventListener('click', () => {
+  const panel = document.getElementById('kmlPanel');
+  const isOpen = panel.classList.toggle('open');
+  document.getElementById('navKml').classList.toggle('active', isOpen);
+});
+
+// KML Laden
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('drag-over'); [...e.dataTransfer.files].forEach(loadKml); });
+fileInput.addEventListener('change', () => { [...fileInput.files].forEach(loadKml); fileInput.value = ''; });
+
+function loadKml(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const kmlText = e.target.result;
+    const color = colors[kmlLayers.length % colors.length];
+    const parser = new DOMParser();
+    const kmlDom = parser.parseFromString(kmlText, 'text/xml');
+    const placemarks = kmlDom.querySelectorAll('Placemark');
+    const markers = [];
+    const group = L.layerGroup().addTo(map);
+
+    placemarks.forEach(pm => {
+      const name = pm.querySelector('name')?.textContent?.trim() || 'Fangpunkt';
+      const desc = pm.querySelector('description')?.textContent?.trim() || '';
+      const coordEl = pm.querySelector('Point coordinates');
+      if (!coordEl) return;
+      const parts = coordEl.textContent.trim().split(',');
+      const lat = parseFloat(parts[1]), lng = parseFloat(parts[0]);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const icon = L.divIcon({
+        html: `<div class="fish-marker" style="background:${color}"><span>🎣</span></div>`,
+        className: '', iconSize: [28,28], iconAnchor: [14,28], popupAnchor: [0,-30]
+      });
+      const m = L.marker([lat, lng], { icon }).addTo(group);
+      m.bindPopup(`<div class="popup-title">${name}</div>${desc ? `<div class="popup-desc">${desc}</div>` : ''}`);
+      markers.push({ lat, lng });
+    });
+
+    try {
+      const geoLayer = omnivore.kml.parse(kmlText);
+      geoLayer.eachLayer(l => {
+        if (!(l instanceof L.Marker)) {
+          if (l.setStyle) l.setStyle({ color, fillColor: color, weight: 2, fillOpacity: 0.2 });
+          l.addTo(group);
+        }
+      });
+    } catch(e) {}
+
+    kmlLayers.push({ name: file.name, color, count: markers.length, group, visible: true, markers });
+    renderKmlList();
+    showToast(`✅ ${markers.length} Punkte geladen`);
+    if (markers.length > 0) {
+      const bounds = L.latLngBounds(markers.map(m => [m.lat, m.lng]));
+      map.flyToBounds(bounds.pad(0.3), { duration: 1.2 });
+    }
+  };
+  reader.readAsText(file);
+}
+
+function renderKmlList() {
+  const list = document.getElementById('kmlList');
+  list.innerHTML = '';
+  kmlLayers.forEach((entry, i) => {
+    const item = document.createElement('div');
+    item.className = 'kml-item';
+    item.innerHTML = `
+      <div class="kml-dot" style="background:${entry.color}"></div>
+      <div class="kml-name" title="${entry.name}">${entry.name}</div>
+      <div class="kml-count">${entry.count} Pkt.</div>
+      <div class="toggle-sw ${entry.visible ? 'on' : ''}" data-idx="${i}"></div>
+      <button class="kml-remove" data-idx="${i}">×</button>
+    `;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.toggle-sw').forEach(sw => {
+    sw.addEventListener('click', () => {
+      const idx = +sw.dataset.idx;
+      kmlLayers[idx].visible = !kmlLayers[idx].visible;
+      if (kmlLayers[idx].visible) map.addLayer(kmlLayers[idx].group);
+      else map.removeLayer(kmlLayers[idx].group);
+      sw.classList.toggle('on', kmlLayers[idx].visible);
+    });
+  });
+  list.querySelectorAll('.kml-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = +btn.dataset.idx;
+      map.removeLayer(kmlLayers[idx].group);
+      kmlLayers.splice(idx, 1);
+      renderKmlList();
+    });
+  });
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+showToast('🗺️ Kartverket Seekarte geladen');
+</script>
+</body>
+</html>
