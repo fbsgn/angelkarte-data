@@ -1,5 +1,14 @@
 {
   "version": 1,
-  "customSpots": [],
-  "kmlLayers": []
+  "updatedAt": "2026-05-31T14:43:21.560Z",
+  "customSpots": [
+    {
+      "id": "1780238601554.3376",
+      "name": "Seehecht",
+      "note": "60 bis 100 Metrt",
+      "lat": 60.605999251724974,
+      "lng": 4.911008882772877,
+      "visible": true
+    }
+  ]
 }
