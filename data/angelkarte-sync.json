@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "updatedAt": "2026-05-31T14:49:12.258Z",
+  "updatedAt": "2026-05-31T15:44:37.936Z",
   "customSpots": [
     {
-      "id": "1780238952253.6973",
-      "name": "Seehecht",
-      "note": "60-100 Meter",
-      "lat": 60.588378877260006,
-      "lng": 4.924111995060231,
+      "id": "1780242277922.8916",
+      "name": "Plattfisch",
+      "note": "Grund halt",
+      "lat": 60.583809696725254,
+      "lng": 4.865022252379277,
       "visible": true
     }
   ]
