@@ -10,7 +10,8 @@
   p{color:#7a9ab8;font-size:13px;text-align:center;max-width:400px;line-height:1.5}
   input{width:100%;max-width:500px;padding:12px;border-radius:10px;border:1px solid #0e3460;background:rgba(14,52,96,.4);color:#f0f6fc;font-size:13px;font-family:monospace}
   button{padding:12px 24px;border-radius:10px;border:none;background:#0a8a6e;color:white;font-size:14px;font-weight:bold;cursor:pointer}
-  #qrbox{background:white;padding:16px;border-radius:14px;display:none}
+  #qrbox{background:white;padding:16px;border-radius:14px;display:none;text-align:center}
+  #qrbox img{display:block}
   #urlbox{font-size:11px;color:#7a9ab8;word-break:break-all;max-width:500px;text-align:center;display:none}
   .warn{color:#e8b84b;font-size:11px;text-align:center;max-width:400px}
 </style>
@@ -20,33 +21,24 @@
 <p>Füge deinen GitHub Token ein – es wird ein QR-Code generiert den du mit dem Handy scannst. Der Token wird <b>nur lokal</b> verarbeitet, nichts wird übertragen.</p>
 <input id="tokenIn" type="password" placeholder="github_pat_..." />
 <button onclick="generate()">QR-Code generieren</button>
-<div id="qrbox"><canvas id="qr"></canvas></div>
+<div id="qrbox"><img id="qrimg" alt="QR-Code"/></div>
 <div id="urlbox"></div>
 <p class="warn">⚠️ QR-Code nach dem Scannen sofort schließen. Token nicht teilen!</p>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 function generate(){
   const token = document.getElementById('tokenIn').value.trim();
   if(!token){ alert('Bitte Token eingeben'); return; }
-  const url = `https://fbsgn.github.io/angelkarte/?token=${encodeURIComponent(token)}`;
-  
-  const qrbox = document.getElementById('qrbox');
-  const canvas = document.getElementById('qr');
-  qrbox.style.display = 'block';
-  canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
-  
-  new QRCode(canvas, {
-    text: url,
-    width: 280,
-    height: 280,
-    colorDark: '#000000',
-    colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.M
-  });
-  
+  const url = 'https://fbsgn.github.io/angelkarte/?token=' + encodeURIComponent(token);
+  // Google Chart API – rendert QR-Code als PNG, komplett clientseitig über URL
+  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&ecc=M&data=' + encodeURIComponent(url);
+  const img = document.getElementById('qrimg');
+  img.src = qrUrl;
+  img.width = 280;
+  img.height = 280;
+  document.getElementById('qrbox').style.display = 'block';
   document.getElementById('urlbox').style.display = 'block';
-  document.getElementById('urlbox').textContent = url.slice(0,60) + '…';
+  document.getElementById('urlbox').textContent = url.slice(0,80) + '…';
 }
 </script>
 </body>
