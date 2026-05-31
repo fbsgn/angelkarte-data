@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Hellesoy Fangpunkte</name>
+
+    <Placemark>
+      <name>Schellfisch 1</name>
+      <Point>
+        <coordinates>4.760972,60.670417,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <Placemark>
+      <name>Schellfisch 2</name>
+      <Point>
+        <coordinates>4.726722,60.685028,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <Placemark>
+      <name>Dorsch 1</name>
+      <Point>
+        <coordinates>4.851056,60.634056,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <Placemark>
+      <name>Dorsch 2</name>
+      <Point>
+        <coordinates>4.808056,60.670778,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <Placemark>
+      <name>Leng 1</name>
+      <Point>
+        <coordinates>4.759056,60.705556,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <Placemark>
+      <name>Leng 2</name>
+      <Point>
+        <coordinates>4.840778,60.671139,0</coordinates>
+      </Point>
+    </Placemark>
+
+    <Placemark>
+      <name>Leng 3</name>
+      <Point>
+        <coordinates>4.701028,60.616889,0</coordinates>
+      </Point>
+    </Placemark>
+
+  </Document>
+</kml>
