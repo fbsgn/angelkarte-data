@@ -1,0 +1,1 @@
+Lege hier .kml-Dateien ab. Die App lädt beim Start alle .kml-Dateien aus dem Ordner /kml automatisch.
