@@ -22,9 +22,9 @@ echo.
 :: In den Norge-Ordner wechseln
 cd /d C:\Norge
 
-:: Git konfigurieren (einmalig)
-git config --global user.name "fbsgn"
-git config --global user.email "deine@email.com"
+:: Git konfigurieren
+git config --local user.name "fbsgn"
+git config --local user.email "deine@email.com"
 
 :: Repository initialisieren falls noch nicht vorhanden
 if not exist ".git" (
@@ -36,7 +36,7 @@ if not exist ".git" (
 
 :: Dateien hinzufuegen und committen
 echo Dateien werden hinzugefuegt...
-git add index.html upload.bat angelkarte-public.html
+git add index.html upload.bat angelkarte-public.html README.md
 
 echo Erstelle Commit...
 git commit -m "Angelkarte aktualisiert" 2>nul || echo (Keine neuen Aenderungen)
