@@ -36,16 +36,19 @@ if not exist ".git" (
 
 :: Dateien hinzufuegen und committen
 echo Dateien werden hinzugefuegt...
-git add index.html
+git add index.html upload.bat
 
 echo Erstelle Commit...
-git commit -m "Angelkarte aktualisiert"
+git commit -m "Angelkarte aktualisiert" 2>nul || echo (Keine neuen Aenderungen)
 
 :: Hochladen
 echo.
 echo Lade hoch zu GitHub...
 echo (Browser-Fenster fuer Anmeldung kann sich oeffnen)
 echo.
+git stash
+git pull origin main --rebase
+git stash pop
 git push -u origin main
 
 echo.
