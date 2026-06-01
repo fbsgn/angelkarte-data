@@ -36,7 +36,7 @@ if not exist ".git" (
 
 :: Dateien hinzufuegen und committen
 echo Dateien werden hinzugefuegt...
-git add index.html upload.bat
+git add index.html upload.bat angelkarte-public.html
 
 echo Erstelle Commit...
 git commit -m "Angelkarte aktualisiert" 2>nul || echo (Keine neuen Aenderungen)
@@ -54,8 +54,9 @@ git push -u origin main
 echo.
 echo ==========================================
 if %errorlevel% equ 0 (
-    echo  FERTIG! Karte ist online unter:
-    echo  https://fbsgn.github.io/angelkarte/
+    echo  FERTIG! Karten sind online unter:
+    echo  Deine Karte:   https://fbsgn.github.io/angelkarte-data/
+    echo  Forum-Version: https://fbsgn.github.io/angelkarte-data/angelkarte-public.html
 ) else (
     echo  FEHLER beim Hochladen.
     echo  Stelle sicher dass das Repository existiert:

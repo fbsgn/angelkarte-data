@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Angelkarte Norwegen</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0a1628;--ocean:#0e3460;--teal:#0a8a6e;--teal-lt:#12b08d;
+  --gold:#e8b84b;--ice:#d6eaf5;--white:#f0f6fc;--muted:#7a9ab8;
+  --danger:#e85050;--panel-bg:rgba(10,22,40,.96);--panel-soft:rgba(14,52,96,.40);
+  --border:rgba(14,52,96,.7)
+}
+html,body{height:100%;width:100%;overflow:hidden;background:var(--navy);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+#map{position:absolute;inset:0;z-index:0}
+
+/* TOPBAR */
+#topbar{position:absolute;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(180deg,rgba(10,22,40,.97) 80%,transparent);pointer-events:none}
+#topbar>*{pointer-events:auto}
+.app-title{font-family:Georgia,serif;font-size:17px;font-weight:bold;color:var(--gold);letter-spacing:.04em;white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+.app-title span{color:var(--teal-lt);font-size:11px;font-weight:normal;display:block;margin-top:1px}
+.spacer{flex:1}
+.btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:var(--panel-bg);color:var(--white);font-size:13px;cursor:pointer}
+
+/* GPS STATUS */
+#gpsStatus{position:absolute;top:54px;left:50%;transform:translateX(-50%);z-index:1001;font-family:monospace;font-size:11px;color:var(--ice);background:var(--panel-bg);border:1px solid var(--border);border-radius:20px;padding:3px 12px;white-space:nowrap;display:none;pointer-events:none}
+#gpsStatus.visible{display:block}
+
+/* LAYER PANEL */
+#layerPanel{position:absolute;top:60px;right:14px;z-index:1000;background:var(--panel-bg);border:1px solid var(--border);border-radius:12px;padding:12px;display:none;min-width:260px;max-width:min(92vw,320px)}
+#layerPanel.open{display:block}
+.layer-section-title{font-size:10px;font-weight:bold;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+.layer-divider{border:none;border-top:1px solid var(--border);margin:8px 0}
+.layer-option{display:flex;align-items:center;gap:8px;padding:8px 4px;color:var(--white);font-size:13px;cursor:pointer}
+.layer-option input{accent-color:var(--teal-lt)}
+.overlay-row{display:flex;align-items:center;justify-content:space-between;padding:8px 4px}
+.overlay-label{color:var(--white);font-size:13px;display:flex;flex-direction:column;gap:1px}
+.overlay-hint{font-size:10px;color:var(--muted)}
+.mini-toggle{width:34px;height:19px;border-radius:10px;background:var(--teal);position:relative;cursor:pointer}
+.mini-toggle::after{content:'';position:absolute;width:15px;height:15px;border-radius:50%;background:white;top:2px;left:17px;transition:left .2s}
+.mini-toggle.off{background:var(--ocean)}
+.mini-toggle.off::after{left:2px}
+
+/* BOTTOM SHEET */
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:1000;background:var(--panel-bg);border-top-left-radius:18px;border-top-right-radius:18px;border-top:1px solid var(--border);box-shadow:0 -10px 30px rgba(0,0,0,.35);display:none;max-height:78vh;overflow:hidden}
+#sheet.open{display:block}
+#sheet.collapsed{display:block;height:74px}
+.sheet-handle{width:44px;height:5px;border-radius:999px;background:rgba(255,255,255,.25);margin:8px auto 4px}
+.sheet-head{display:flex;align-items:flex-start;gap:10px;padding:0 12px 10px}
+.sheet-title{min-width:0;flex:1}
+.sheet-title h3{font-size:18px;line-height:1.2;color:var(--white)}
+.sheet-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--panel-soft);color:var(--white);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+#sheet.collapsed .sheet-body{display:none}
+#sheet.collapsed .sheet-head{padding-bottom:12px}
+.sheet-body{padding:0 12px 12px;overflow:auto;max-height:calc(78vh - 70px)}
+
+/* SECTIONS & BUTTONS */
+.section{margin-bottom:14px}
+.section-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+.grid-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid-actions .full{grid-column:1/-1}
+.action-btn{display:flex;align-items:center;justify-content:center;min-height:44px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--panel-soft);color:var(--white);font-size:13px;font-weight:600;cursor:pointer}
+.action-btn.primary{background:rgba(232,80,80,.18);border-color:rgba(232,80,80,.35)}
+.action-btn.active{outline:2px solid var(--teal-lt);color:var(--teal-lt)}
+
+/* DROPZONE */
+#dropzone{border:2px dashed rgba(18,176,141,.35);border-radius:14px;padding:14px;text-align:center;color:var(--muted);font-size:14px;cursor:pointer;transition:border-color .15s,background .15s;background:rgba(14,52,96,.20)}
+#dropzone.drag-over{border-color:var(--teal-lt);background:rgba(10,138,110,.1);color:var(--white)}
+#dropzone svg{display:block;margin:0 auto 8px}
+#fileInput,#jsonImportInput{display:none}
+
+/* LIST ITEMS */
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;align-items:center;gap:8px;background:var(--panel-soft);border:1px solid rgba(14,52,96,.35);border-radius:12px;padding:10px}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.name{flex:1;min-width:0;font-size:14px;color:var(--white);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta{font-size:11px;color:var(--muted);white-space:nowrap}
+.remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:0 2px}
+.toggle-sw{width:34px;height:20px;border-radius:999px;background:var(--ocean);position:relative;cursor:pointer;flex-shrink:0}
+.toggle-sw::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:var(--muted);top:2px;left:2px;transition:left .2s,background .2s}
+.toggle-sw.on{background:var(--teal)}
+.toggle-sw.on::after{left:16px;background:var(--white)}
+
+/* BOTTOM NAV */
+#bottomNav{position:absolute;bottom:0;left:0;right:0;z-index:999;display:flex;background:var(--panel-bg);border-top:1px solid var(--border);padding-bottom:env(safe-area-inset-bottom,0)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;padding:9px 6px 7px;color:var(--muted);font-size:10px;border:none;background:none;gap:4px;cursor:pointer}
+.nav-btn.active{color:var(--teal-lt)}
+
+/* SPOT MODAL */
+#spotModal{position:absolute;inset:0;z-index:2000;background:rgba(0,0,0,.45);display:none;align-items:flex-end}
+#spotModal.open{display:flex}
+#spotModalCard{width:100%;background:var(--panel-bg);border-top:1px solid var(--border);padding:14px 14px 18px;border-top-left-radius:18px;border-top-right-radius:18px}
+#spotModalCard h3{font-size:12px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+#spotModalCard label{display:block;color:var(--white);font-size:12px;margin:8px 0 4px}
+#spotModalCard input,#spotModalCard textarea{width:100%;border:1px solid var(--border);background:rgba(14,52,96,.35);color:var(--white);border-radius:10px;padding:10px;font-size:14px}
+#spotModalCard textarea{min-height:90px;resize:vertical}
+#spotModalActions{display:flex;gap:8px;margin-top:12px}
+.modal-btn{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--border);cursor:pointer}
+.modal-btn.primary{background:var(--teal);color:var(--white)}
+.modal-btn.secondary{background:rgba(14,52,96,.45);color:var(--white)}
+
+/* GPS MARKER */
+.gps-pulse{width:22px;height:22px;border-radius:50%;background:rgba(18,176,141,.35);display:flex;align-items:center;justify-content:center;animation:pulse 1.8s ease-in-out infinite}
+.gps-dot{width:10px;height:10px;border-radius:50%;background:var(--teal-lt);border:2px solid white;box-shadow:0 0 6px rgba(18,176,141,.8)}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(18,176,141,.5)}70%{box-shadow:0 0 0 12px rgba(18,176,141,0)}100%{box-shadow:0 0 0 0 rgba(18,176,141,0)}}
+
+/* MARKERS */
+.fish-marker{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.6);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.fish-marker span{transform:rotate(45deg);font-size:13px}
+.spot-marker{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#e85050;border:2px solid rgba(255,255,255,.7);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.spot-marker span{font-size:13px}
+
+/* POPUPS */
+.leaflet-popup-content-wrapper{background:var(--panel-bg)!important;border:1px solid var(--border)!important;color:var(--white)!important;border-radius:10px!important}
+.leaflet-popup-tip{background:var(--panel-bg)!important}
+.leaflet-popup-content{margin:10px 14px!important}
+.popup-title{font-weight:bold;color:var(--gold);margin-bottom:4px;font-size:14px}
+.popup-desc{color:var(--ice);font-size:12px;line-height:1.5}
+.popup-btn{display:inline-block;margin-top:8px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:rgba(232,80,80,.15);color:var(--white);text-decoration:none;font-size:12px;cursor:pointer}
+
+/* TOAST */
+#toast{position:absolute;top:70px;left:50%;transform:translateX(-50%) translateY(-10px);z-index:9999;background:var(--teal);color:white;font-size:13px;padding:8px 16px;border-radius:20px;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* INFO MODAL */
+#infoModal{position:absolute;inset:0;z-index:2000;background:rgba(0,0,0,.6);display:none;align-items:flex-end}
+#infoModal.open{display:flex}
+#infoCard{width:100%;background:var(--panel-bg);border-top:1px solid var(--border);padding:16px 16px 24px;border-top-left-radius:18px;border-top-right-radius:18px;max-height:85vh;overflow-y:auto}
+#infoCard h2{font-family:Georgia,serif;color:var(--gold);font-size:18px;margin-bottom:12px}
+#infoCard h3{color:var(--teal-lt);font-size:12px;letter-spacing:.1em;text-transform:uppercase;margin:14px 0 6px}
+#infoCard p,#infoCard li{color:var(--ice);font-size:13px;line-height:1.6;margin-bottom:4px}
+#infoCard ul{padding-left:18px}
+#infoCard .close-info{width:100%;margin-top:16px;padding:12px;border-radius:12px;border:none;background:var(--teal);color:white;font-size:15px;font-weight:bold;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div id="topbar">
+  <div class="app-title">⚓ Angelkarte <span>Norwegen · Sjøkart</span></div>
+  <div class="spacer"></div>
+  <button class="btn" id="btnInfo">ℹ️ Info</button>
+  <button class="btn" id="btnLayers">Ebenen</button>
+</div>
+
+<div id="gpsStatus"></div>
+
+<div id="layerPanel">
+  <div class="layer-section-title">Basiskarte</div>
+  <label class="layer-option"><input type="radio" name="layer" value="sjokart" checked /> 🗺️ Kartverket Sjøkart</label>
+  <label class="layer-option"><input type="radio" name="layer" value="topo" /> 🏔️ Kartverket Topo</label>
+  <label class="layer-option"><input type="radio" name="layer" value="osm" /> 🌍 OpenStreetMap</label>
+  <label class="layer-option"><input type="radio" name="layer" value="esri" /> 🛰️ Satellitenbild (ESRI)</label>
+  <hr class="layer-divider"/>
+  <div class="layer-section-title">Overlays</div>
+  <div class="overlay-row">
+    <div class="overlay-label">⚓ OpenSeaMap <span class="overlay-hint">Bojen, Tonnen, Leuchtfeuer</span></div>
+    <div class="mini-toggle" id="toggleSeamap"></div>
+  </div>
+  <div class="overlay-row">
+    <div class="overlay-label">🌊 Tiefendaten <span class="overlay-hint">Havbunn – Kartverket</span></div>
+    <div class="mini-toggle off" id="toggleDepth"></div>
+  </div>
+  <div class="overlay-row">
+    <div class="overlay-label">🚢 Schiffe (MarineTraffic) <span class="overlay-hint">Öffnet externen Tab</span></div>
+    <button id="btnMarineTraffic" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:rgba(14,52,96,.5);color:var(--white);font-size:12px;cursor:pointer;white-space:nowrap">Öffnen ↗</button>
+  </div>
+</div>
+
+<div id="sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <button class="icon-btn" id="sheetCollapseBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 15 12 9 18 15"/></svg>
+    </button>
+    <div class="sheet-title">
+      <h3>Punkte & Spots</h3>
+      <div class="sheet-sub" id="summary">Kein Inhalt</div>
+    </div>
+  </div>
+  <div class="sheet-body">
+    <div class="section">
+      <div class="section-label">Aktionen</div>
+      <div class="grid-actions">
+        <button class="action-btn full primary" id="btnAddSpot">➕ Spot hinzufügen</button>
+        <button class="action-btn full" id="btnImportJson">📥 Import JSON</button>
+        <button class="action-btn" id="btnExportJson">⬇️ Export JSON</button>
+        <button class="action-btn" id="btnExportKml">⬇️ Export KML</button>
+        <button class="action-btn full" id="btnClearAll" style="border-color:rgba(232,80,80,.35);color:var(--danger)">🗑️ Alles löschen</button>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">Eigene Spots</div>
+      <div class="list" id="spotList"></div>
+    </div>
+    <div class="section">
+      <div class="section-label">KML laden</div>
+      <div id="dropzone">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        KML-Datei hierher ziehen<br/><small>oder tippen zum Auswählen</small>
+      </div>
+      <input type="file" id="fileInput" accept=".kml,.kmz" multiple />
+      <input type="file" id="jsonImportInput" accept=".json,application/json" />
+    </div>
+    <div class="section">
+      <div class="section-label">KML-Dateien</div>
+      <div class="list" id="kmlList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="bottomNav">
+  <button class="nav-btn" id="navCenter">🎯<span>Zentrieren</span></button>
+  <button class="nav-btn" id="navGps">📍<span>GPS</span></button>
+  <button class="nav-btn" id="navSpot">📌<span>Spot</span></button>
+  <button class="nav-btn" id="navKml">📂<span>Punkte</span></button>
+</div>
+
+<div id="toast"></div>
+
+<div id="spotModal">
+  <div id="spotModalCard">
+    <h3>Spot anlegen</h3>
+    <label for="spotName">Name</label>
+    <input id="spotName" type="text" placeholder="z. B. Köhlerkante" />
+    <label for="spotNote">Notiz</label>
+    <textarea id="spotNote" placeholder="Tiefe, Drift, Köder, Bemerkung ..."></textarea>
+    <div id="spotModalActions">
+      <button class="modal-btn secondary" id="spotCancel" type="button">Abbrechen</button>
+      <button class="modal-btn primary" id="spotSave" type="button">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- INFO MODAL -->
+<div id="infoModal">
+  <div id="infoCard">
+    <h2>⚓ Angelkarte Norwegen</h2>
+    <p>Kostenlose GPS-Angelkarte für Norwegen – keine App nötig, läuft direkt im Browser. Alle Daten bleiben <strong style="color:var(--teal-lt)">nur auf deinem Gerät</strong>.</p>
+
+    <h3>📍 GPS & Navigation</h3>
+    <ul>
+      <li>„GPS" unten antippen → Standort wird angezeigt</li>
+      <li>„Zentrieren" bringt die Karte zurück zu dir</li>
+    </ul>
+
+    <h3>📌 Spots anlegen</h3>
+    <ul>
+      <li>„Spot" antippen → auf die Karte tippen → Name & Notiz eingeben</li>
+      <li>Spots werden lokal gespeichert und bleiben auch nach Neustart</li>
+    </ul>
+
+    <h3>📂 KML-Dateien laden</h3>
+    <ul>
+      <li>„Punkte" öffnen → KML-Datei in die gestrichelte Fläche ziehen oder antippen</li>
+      <li>Kompatibel mit Google Maps, Garmin, Navionics etc.</li>
+    </ul>
+
+    <h3>💾 Backup & Übertragung</h3>
+    <ul>
+      <li><strong style="color:var(--white)">Export JSON</strong> – Sicherungskopie aller Spots & KML</li>
+      <li><strong style="color:var(--white)">Import JSON</strong> – Backup wiederherstellen oder auf neuem Gerät laden</li>
+      <li><strong style="color:var(--white)">Export KML</strong> – Punkte für andere Apps exportieren</li>
+    </ul>
+
+    <h3>🗺️ Kartentypen</h3>
+    <ul>
+      <li>Oben rechts „Ebenen" → Sjøkart, Topo, OSM oder Satellit wählen</li>
+      <li>Overlays: OpenSeaMap (Bojen), Tiefendaten, MarineTraffic</li>
+    </ul>
+
+    <h3>📱 Als App installieren</h3>
+    <ul>
+      <li><strong style="color:var(--white)">iPhone:</strong> Safari → Teilen → „Zum Home-Bildschirm"</li>
+      <li><strong style="color:var(--white)">Android:</strong> Chrome → Menü → „App installieren"</li>
+    </ul>
+
+    <p style="margin-top:12px;color:var(--muted);font-size:11px">Die Beispielpunkte (🎣) zeigen Fangstellen bei Hellesøy – ersetze sie durch deine eigenen!</p>
+    <button class="close-info" id="closeInfo">Verstanden – Los geht's! 🎣</button>
+  </div>
+</div>
+
+<script>
+// ── BEISPIEL-KML (Hellesoy) ──────────────────────────────────────────────────
+const EXAMPLE_KML = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>Hellesoy Fangpunkte (Beispiel)</name>
+    <Placemark><name>Schellfisch 1</name><Point><coordinates>4.760972,60.670417,0</coordinates></Point></Placemark>
+    <Placemark><name>Schellfisch 2</name><Point><coordinates>4.726722,60.685028,0</coordinates></Point></Placemark>
+    <Placemark><name>Dorsch 1</name><Point><coordinates>4.851056,60.634056,0</coordinates></Point></Placemark>
+    <Placemark><name>Dorsch 2</name><Point><coordinates>4.808056,60.670778,0</coordinates></Point></Placemark>
+    <Placemark><name>Leng 1</name><Point><coordinates>4.759056,60.705556,0</coordinates></Point></Placemark>
+    <Placemark><name>Leng 2</name><Point><coordinates>4.840778,60.671139,0</coordinates></Point></Placemark>
+    <Placemark><name>Leng 3</name><Point><coordinates>4.701028,60.616889,0</coordinates></Point></Placemark>
+  </Document>
+</kml>`;
+
+// ── STORAGE KEYS ─────────────────────────────────────────────────────────────
+const KML_KEY   = 'angelkarte_pub_kml_v1';
+const SPOT_KEY  = 'angelkarte_pub_spots_v1';
+const SEEN_KEY  = 'angelkarte_pub_seen_v1';
+const SHEET_KEY = 'angelkarte_pub_sheet_v1';
+
+// ── MAP SETUP ─────────────────────────────────────────────────────────────────
+const baseLayers = {
+  sjokart: L.tileLayer('https://cache.kartverket.no/v1/wmts/1.0.0/sjokartraster/default/webmercator/{z}/{y}/{x}.png',{attribution:'© Kartverket – Sjøkart',maxZoom:18,minZoom:3}),
+  topo:    L.tileLayer('https://cache.kartverket.no/v1/wmts/1.0.0/topo/default/webmercator/{z}/{y}/{x}.png',{attribution:'© Kartverket – Topo',maxZoom:18,minZoom:3}),
+  osm:     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}),
+  esri:    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri',maxZoom:19})
+};
+const layerSeamap = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{attribution:'© OpenSeaMap',maxZoom:18});
+const layerDepth  = L.tileLayer.wms('https://wms.geonorge.no/skwms1/wms.havbunnraster3',{layers:'havbunnraster',format:'image/png',transparent:true,version:'1.3.0',opacity:.55,attribution:'© Kartverket – Havbunn',maxZoom:18});
+
+const map = L.map('map',{center:[62.5,7],zoom:6,zoomControl:true,attributionControl:true,layers:[baseLayers.sjokart,layerSeamap]});
+
+let currentBase = 'sjokart';
+let overlayOn   = {seaMap:true, depth:false};
+let kmlLayers   = [];
+let customSpots = [];
+let gpsMarker=null, gpsCircle=null, gpsWatchId=null, gpsActive=false, gpsCentered=false;
+let spotAddMode=false, pendingSpotLatLng=null;
+const colors = ['#e8b84b','#12b08d','#e85050','#6c8ebf','#f5d17a','#a8d8a8','#ff9f7f'];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(window.__tt);
+  window.__tt=setTimeout(()=>t.classList.remove('show'),2800);
+}
+function reorderOverlays(){
+  if(map.hasLayer(layerDepth)){map.removeLayer(layerDepth);map.addLayer(layerDepth)}
+  if(map.hasLayer(layerSeamap)){map.removeLayer(layerSeamap);map.addLayer(layerSeamap)}
+}
+function updateSummary(){
+  const vk=kmlLayers.filter(x=>x.visible).length, vs=customSpots.filter(x=>x.visible!==false).length;
+  document.getElementById('summary').textContent=`${kmlLayers.length} KML · ${customSpots.length} Spots · ${vk+vs} sichtbar`;
+  document.getElementById('btnAddSpot').classList.toggle('active',spotAddMode);
+}
+function triggerDownload(filename,content,mime){
+  const blob=new Blob([content],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function setSheetCollapsed(c){
+  document.getElementById('sheet').classList.toggle('collapsed',!!c);
+  try{localStorage.setItem(SHEET_KEY,c?'collapsed':'open')}catch(e){}
+}
+
+// ── PERSIST ───────────────────────────────────────────────────────────────────
+function saveKml(){
+  try{localStorage.setItem(KML_KEY,JSON.stringify(kmlLayers.map(x=>({name:x.name,color:x.color,count:x.count||0,visible:x.visible,kmlText:x.kmlText||''}))))}catch(e){}
+}
+function saveSpots(){
+  try{localStorage.setItem(SPOT_KEY,JSON.stringify(customSpots.map(s=>({id:s.id,name:s.name,note:s.note||'',lat:s.lat,lng:s.lng,visible:s.visible!==false}))))}catch(e){}
+}
+
+// ── SPOTS ─────────────────────────────────────────────────────────────────────
+function createSpotMarker(spot){
+  const icon=L.divIcon({html:'<div class="spot-marker"><span>📍</span></div>',className:'',iconSize:[28,28],iconAnchor:[14,14],popupAnchor:[0,-12]});
+  const marker=L.marker([spot.lat,spot.lng],{icon,zIndexOffset:900});
+  marker.bindPopup(()=>`<div class="popup-title">${spot.name||'Spot'}</div><div class="popup-desc">${spot.note?spot.note.replace(/\n/g,'<br>'):'Kein Hinweis'}<br><small>${spot.lat.toFixed(5)}, ${spot.lng.toFixed(5)}</small></div><a href="#" class="popup-btn" onclick="deleteSpotById('${spot.id}');return false;">Spot löschen</a>`);
+  return marker;
+}
+window.deleteSpotById=function(id){
+  const idx=customSpots.findIndex(s=>s.id===id);
+  if(idx<0)return;
+  if(customSpots[idx].marker)map.removeLayer(customSpots[idx].marker);
+  customSpots.splice(idx,1);
+  renderSpotList(); saveSpots(); showToast('Spot gelöscht');
+};
+function renderSpotList(){
+  const list=document.getElementById('spotList'); list.innerHTML='';
+  customSpots.forEach((spot,i)=>{
+    const item=document.createElement('div'); item.className='item';
+    item.innerHTML=`<div class="dot" style="background:#e85050"></div><div class="name" title="${spot.name}">${spot.name}</div><div class="meta">${spot.lat.toFixed(3)}, ${spot.lng.toFixed(3)}</div><div class="toggle-sw ${spot.visible!==false?'on':''}" data-idx="${i}"></div><button class="remove" data-idx="${i}">×</button>`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.toggle-sw').forEach(sw=>sw.addEventListener('click',()=>{
+    const s=customSpots[+sw.dataset.idx];
+    s.visible=!s.visible;
+    s.visible?s.marker.addTo(map):map.removeLayer(s.marker);
+    sw.classList.toggle('on',s.visible); saveSpots(); updateSummary();
+  }));
+  list.querySelectorAll('.remove').forEach(btn=>btn.addEventListener('click',()=>deleteSpotById(customSpots[+btn.dataset.idx].id)));
+  updateSummary();
+}
+function restoreSpots(){
+  try{
+    const raw=localStorage.getItem(SPOT_KEY); if(!raw)return;
+    JSON.parse(raw).forEach(s=>{
+      const spot={id:s.id||String(Date.now()+Math.random()),name:s.name||'Spot',note:s.note||'',lat:+s.lat,lng:+s.lng,visible:s.visible!==false};
+      spot.marker=createSpotMarker(spot);
+      if(spot.visible)spot.marker.addTo(map);
+      customSpots.push(spot);
+    });
+    renderSpotList();
+  }catch(e){}
+}
+function openSpotModal(latlng){
+  pendingSpotLatLng=latlng;
+  document.getElementById('spotName').value='';
+  document.getElementById('spotNote').value='';
+  document.getElementById('spotModal').classList.add('open');
+  setTimeout(()=>document.getElementById('spotName').focus(),50);
+}
+function closeSpotModal(){document.getElementById('spotModal').classList.remove('open');pendingSpotLatLng=null;}
+function saveNewSpot(){
+  if(!pendingSpotLatLng)return;
+  const spot={id:String(Date.now()+Math.random()),name:document.getElementById('spotName').value.trim()||'Spot',note:document.getElementById('spotNote').value.trim(),lat:pendingSpotLatLng.lat,lng:pendingSpotLatLng.lng,visible:true};
+  spot.marker=createSpotMarker(spot).addTo(map);
+  customSpots.push(spot);
+  renderSpotList(); saveSpots(); closeSpotModal();
+  showToast('📍 Spot gespeichert');
+}
+
+// ── KML ───────────────────────────────────────────────────────────────────────
+function loadKmlText(name,kmlText,persist=true,forcedColor=null,visible=true){
+  if(kmlLayers.some(x=>x.name===name))return;
+  const color=forcedColor||colors[kmlLayers.length%colors.length];
+  const kmlDom=new DOMParser().parseFromString(kmlText,'text/xml');
+  const markers=[], group=L.layerGroup();
+  kmlDom.querySelectorAll('Placemark').forEach(pm=>{
+    const pname=pm.querySelector('name')?.textContent?.trim()||'Fangpunkt';
+    const desc=pm.querySelector('description')?.textContent?.trim()||'';
+    const coordEl=pm.querySelector('Point coordinates'); if(!coordEl)return;
+    const parts=coordEl.textContent.trim().split(',');
+    const lat=parseFloat(parts[1]),lng=parseFloat(parts[0]);
+    if(isNaN(lat)||isNaN(lng))return;
+    L.marker([lat,lng],{icon:L.divIcon({html:`<div class="fish-marker" style="background:${color}"><span>🎣</span></div>`,className:'',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-30]})})
+      .addTo(group).bindPopup(`<div class="popup-title">${pname}</div>${desc?`<div class="popup-desc">${desc}</div>`:''}`);
+    markers.push({lat,lng});
+  });
+  try{omnivore.kml.parse(kmlText).eachLayer(l=>{if(!(l instanceof L.Marker)){if(l.setStyle)l.setStyle({color,fillColor:color,weight:2,fillOpacity:.2});l.addTo(group)}})}catch(e){}
+  if(visible)group.addTo(map);
+  kmlLayers.push({name,color,count:markers.length,group,visible,markers,kmlText});
+  if(persist)saveKml();
+  renderKmlList();
+  return markers.length;
+}
+function renderKmlList(){
+  const list=document.getElementById('kmlList'); list.innerHTML='';
+  kmlLayers.forEach((entry,i)=>{
+    const item=document.createElement('div'); item.className='item';
+    item.innerHTML=`<div class="dot" style="background:${entry.color}"></div><div class="name" title="${entry.name}">${entry.name}</div><div class="meta">${entry.count} Pkt.</div><div class="toggle-sw ${entry.visible?'on':''}" data-idx="${i}"></div><button class="remove" data-idx="${i}">×</button>`;
+    list.appendChild(item);
+  });
+  list.querySelectorAll('.toggle-sw').forEach(sw=>sw.addEventListener('click',()=>{
+    const idx=+sw.dataset.idx;
+    kmlLayers[idx].visible=!kmlLayers[idx].visible;
+    kmlLayers[idx].visible?map.addLayer(kmlLayers[idx].group):map.removeLayer(kmlLayers[idx].group);
+    sw.classList.toggle('on',kmlLayers[idx].visible); saveKml(); updateSummary();
+  }));
+  list.querySelectorAll('.remove').forEach(btn=>btn.addEventListener('click',()=>{
+    map.removeLayer(kmlLayers[+btn.dataset.idx].group);
+    kmlLayers.splice(+btn.dataset.idx,1);
+    renderKmlList(); saveKml(); updateSummary();
+  }));
+  updateSummary();
+}
+function restoreKml(){
+  try{
+    const raw=localStorage.getItem(KML_KEY); if(!raw)return;
+    JSON.parse(raw).forEach(item=>{if(item.kmlText)loadKmlText(item.name,item.kmlText,false,item.color,item.visible!==false)});
+    renderKmlList();
+  }catch(e){}
+}
+function loadKmlFile(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{const count=loadKmlText(file.name,ev.target.result,true);showToast(`✅ ${count||0} Punkte geladen`)};
+  reader.readAsText(file);
+}
+
+// ── EXPORT / IMPORT ───────────────────────────────────────────────────────────
+function exportJson(){
+  const payload={version:1,exportedAt:new Date().toISOString(),customSpots:customSpots.map(s=>({id:s.id,name:s.name,note:s.note,lat:s.lat,lng:s.lng,visible:s.visible!==false})),kmlLayers:kmlLayers.map(x=>({name:x.name,color:x.color,count:x.count||0,visible:x.visible,kmlText:x.kmlText||''}))};
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  triggerDownload(`angelkarte-backup-${stamp}.json`,JSON.stringify(payload,null,2),'application/json;charset=utf-8');
+  showToast('⬇️ Backup gespeichert');
+}
+function exportKml(){
+  const placemarks=[];
+  customSpots.forEach(s=>placemarks.push(`<Placemark><name>${(s.name||'Spot').replace(/[<&>]/g,'')}</name><description>${(s.note||'').replace(/[<&>]/g,'')}</description><Point><coordinates>${s.lng},${s.lat},0</coordinates></Point></Placemark>`));
+  kmlLayers.forEach(x=>{if(x.kmlText){new DOMParser().parseFromString(x.kmlText,'text/xml').querySelectorAll('Placemark').forEach(pm=>placemarks.push(pm.outerHTML))}});
+  const doc=`<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n<name>Angelkarte Export</name>\n${placemarks.join('\n')}\n</Document>\n</kml>`;
+  const stamp=new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  triggerDownload(`angelkarte-export-${stamp}.kml`,doc,'application/vnd.google-earth.kml+xml;charset=utf-8');
+  showToast('⬇️ KML exportiert');
+}
+function importJson(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(Array.isArray(data.kmlLayers))data.kmlLayers.forEach(x=>{if(x.kmlText)loadKmlText(x.name,x.kmlText,false,x.color,x.visible!==false)});
+      if(Array.isArray(data.customSpots))data.customSpots.forEach(s=>{
+        const spot={id:s.id||String(Date.now()+Math.random()),name:s.name||'Spot',note:s.note||'',lat:+s.lat,lng:+s.lng,visible:s.visible!==false};
+        spot.marker=createSpotMarker(spot); if(spot.visible)spot.marker.addTo(map); customSpots.push(spot);
+      });
+      renderKmlList(); renderSpotList(); saveKml(); saveSpots();
+      showToast('📥 Backup geladen');
+    }catch(e){showToast('⚠️ Import fehlgeschlagen')}
+  };
+  reader.readAsText(file);
+}
+
+// ── GPS ───────────────────────────────────────────────────────────────────────
+function startGps(){
+  if(!navigator.geolocation){showToast('⚠️ GPS nicht verfügbar');return}
+  gpsActive=true;
+  document.getElementById('navGps').classList.add('active');
+  document.getElementById('gpsStatus').classList.add('visible');
+  document.getElementById('gpsStatus').textContent='⌛ GPS wird gesucht…';
+  if(gpsWatchId!==null)navigator.geolocation.clearWatch(gpsWatchId);
+  gpsWatchId=navigator.geolocation.watchPosition(pos=>{
+    const{latitude:lat,longitude:lng,accuracy}=pos.coords;
+    if(!gpsMarker){
+      const icon=L.divIcon({html:'<div class="gps-pulse"><div class="gps-dot"></div></div>',className:'',iconSize:[22,22],iconAnchor:[11,11]});
+      gpsMarker=L.marker([lat,lng],{icon,zIndexOffset:1000}).addTo(map);
+      gpsCircle=L.circle([lat,lng],{radius:accuracy,color:'#12b08d',fillColor:'#12b08d',fillOpacity:.08,weight:1,dashArray:'4 4'}).addTo(map);
+      if(!gpsCentered){map.flyTo([lat,lng],14,{duration:1.5});gpsCentered=true}
+    }else{gpsMarker.setLatLng([lat,lng]);gpsCircle.setLatLng([lat,lng]).setRadius(accuracy)}
+    document.getElementById('gpsStatus').textContent=`📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} ± ${Math.round(accuracy)} m`;
+  },err=>{
+    const msg={1:'⛔ GPS verweigert',2:'⚠️ Position nicht ermittelbar',3:'⏱ GPS-Timeout'}[err.code]||'⚠️ GPS-Fehler';
+    showToast(msg);
+  },{enableHighAccuracy:true,timeout:20000,maximumAge:3000});
+}
+function stopGps(){
+  if(gpsWatchId!==null){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null}
+  if(gpsMarker){map.removeLayer(gpsMarker);gpsMarker=null}
+  if(gpsCircle){map.removeLayer(gpsCircle);gpsCircle=null}
+  gpsActive=false; gpsCentered=false;
+  document.getElementById('navGps').classList.remove('active');
+  document.getElementById('gpsStatus').classList.remove('visible');
+  showToast('GPS gestoppt');
+}
+
+// ── EVENT LISTENERS ───────────────────────────────────────────────────────────
+// Dropzone
+const dropzone=document.getElementById('dropzone'), fileInput=document.getElementById('fileInput'), jsonInput=document.getElementById('jsonImportInput');
+dropzone.addEventListener('click',()=>fileInput.click());
+dropzone.addEventListener('dragover',e=>{e.preventDefault();dropzone.classList.add('drag-over')});
+dropzone.addEventListener('dragleave',()=>dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop',e=>{e.preventDefault();dropzone.classList.remove('drag-over');[...e.dataTransfer.files].forEach(loadKmlFile)});
+fileInput.addEventListener('change',()=>{[...fileInput.files].forEach(loadKmlFile);fileInput.value=''});
+jsonInput.addEventListener('change',()=>{if(jsonInput.files[0])importJson(jsonInput.files[0]);jsonInput.value=''});
+
+// Buttons
+document.getElementById('btnImportJson').addEventListener('click',()=>jsonInput.click());
+document.getElementById('btnExportJson').addEventListener('click',exportJson);
+document.getElementById('btnExportKml').addEventListener('click',exportKml);
+document.getElementById('btnClearAll').addEventListener('click',()=>{
+  if(!confirm('Wirklich alle Spots und KML löschen?'))return;
+  customSpots.forEach(s=>{if(s.marker)map.removeLayer(s.marker)}); customSpots=[];
+  kmlLayers.forEach(x=>map.removeLayer(x.group)); kmlLayers=[];
+  saveSpots(); saveKml(); renderSpotList(); renderKmlList();
+  showToast('🗑️ Alles gelöscht');
+});
+
+// Spot Modal
+document.getElementById('spotCancel').addEventListener('click',closeSpotModal);
+document.getElementById('spotSave').addEventListener('click',saveNewSpot);
+document.getElementById('spotModal').addEventListener('click',e=>{if(e.target.id==='spotModal')closeSpotModal()});
+
+// Nav
+document.getElementById('navGps').addEventListener('click',()=>gpsActive?stopGps():startGps());
+document.getElementById('navCenter').addEventListener('click',()=>{
+  if(gpsMarker){map.flyTo(gpsMarker.getLatLng(),Math.max(map.getZoom(),14),{duration:1});showToast('📍 Zentriert')}
+  else showToast('GPS zuerst einschalten');
+});
+document.getElementById('navSpot').addEventListener('click',()=>{
+  spotAddMode=!spotAddMode;
+  document.getElementById('navSpot').classList.toggle('active',spotAddMode);
+  showToast(spotAddMode?'📍 Spot-Modus aktiv – auf Karte tippen':'Spot-Modus aus');
+  updateSummary();
+});
+document.getElementById('navKml').addEventListener('click',()=>{
+  const sheet=document.getElementById('sheet');
+  const now=sheet.classList.toggle('open');
+  document.getElementById('navKml').classList.toggle('active',now);
+});
+document.getElementById('sheetCollapseBtn').addEventListener('click',e=>{
+  e.stopPropagation();
+  setSheetCollapsed(!document.getElementById('sheet').classList.contains('collapsed'));
+});
+map.on('click',e=>{if(spotAddMode)openSpotModal(e.latlng)});
+
+// Layers
+document.querySelectorAll('[name=layer]').forEach(r=>r.addEventListener('change',()=>{
+  map.removeLayer(baseLayers[currentBase]);
+  currentBase=r.value;
+  map.addLayer(baseLayers[currentBase]);
+  reorderOverlays();
+  document.getElementById('layerPanel').classList.remove('open');
+  showToast('Karte gewechselt');
+}));
+document.getElementById('toggleSeamap').addEventListener('click',function(){
+  overlayOn.seaMap=!overlayOn.seaMap;
+  overlayOn.seaMap?map.addLayer(layerSeamap):map.removeLayer(layerSeamap);
+  this.classList.toggle('off',!overlayOn.seaMap); reorderOverlays();
+  showToast(overlayOn.seaMap?'⚓ OpenSeaMap ein':'⚓ OpenSeaMap aus');
+});
+document.getElementById('toggleDepth').addEventListener('click',function(){
+  overlayOn.depth=!overlayOn.depth;
+  overlayOn.depth?map.addLayer(layerDepth):map.removeLayer(layerDepth);
+  this.classList.toggle('off',!overlayOn.depth); reorderOverlays();
+  showToast(overlayOn.depth?'🌊 Tiefendaten ein':'🌊 Tiefendaten aus');
+});
+document.getElementById('btnLayers').addEventListener('click',e=>{
+  e.stopPropagation();
+  document.getElementById('layerPanel').classList.toggle('open');
+});
+document.getElementById('btnMarineTraffic').addEventListener('click',()=>{
+  const c=map.getCenter();
+  window.open(`https://www.marinetraffic.com/en/ais/home/centerx:${c.lng.toFixed(4)}/centery:${c.lat.toFixed(4)}/zoom:${Math.min(map.getZoom(),17)}`,'_blank');
+  document.getElementById('layerPanel').classList.remove('open');
+});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#layerPanel')&&!e.target.closest('#btnLayers'))
+    document.getElementById('layerPanel').classList.remove('open');
+});
+
+// Info Modal
+document.getElementById('btnInfo').addEventListener('click',()=>document.getElementById('infoModal').classList.add('open'));
+document.getElementById('closeInfo').addEventListener('click',()=>{
+  document.getElementById('infoModal').classList.remove('open');
+  try{localStorage.setItem(SEEN_KEY,'1')}catch(e){}
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+restoreSpots();
+restoreKml();
+updateSummary();
+try{if(localStorage.getItem(SHEET_KEY)==='collapsed')setSheetCollapsed(true)}catch(e){}
+
+// Beispiel-KML laden wenn noch nichts vorhanden
+if(kmlLayers.length===0){
+  loadKmlText('Hellesoy Fangpunkte (Beispiel)', EXAMPLE_KML, true);
+  showToast('🎣 Beispielpunkte geladen – ersetze sie durch deine!');
+}
+
+// Info Modal beim ersten Besuch zeigen
+try{if(!localStorage.getItem(SEEN_KEY))document.getElementById('infoModal').classList.add('open')}catch(e){}
+</script>
+</body>
+</html>
