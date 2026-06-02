@@ -36,7 +36,7 @@ if not exist ".git" (
 
 :: Dateien hinzufuegen und committen
 echo Dateien werden hinzugefuegt...
-git add index.html upload.bat angelkarte-public.html README.md
+git add index.html upload.bat angelkarte-public.html README.md kml/
 
 echo Erstelle Commit...
 git commit -m "Angelkarte aktualisiert" 2>nul || echo (Keine neuen Aenderungen)

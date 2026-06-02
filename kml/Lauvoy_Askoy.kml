@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Lauvoy_Askoy</name>
+  <Placemark>
+    <name>Bootssteg</name>
+    <description>abfahren &amp; ankommen</description>
+    <Point><coordinates>5.066217,60.442783,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 1</name>
+    <description>Köhler, Pollack, Makrelen</description>
+    <Point><coordinates>5.053883,60.449267,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 2</name>
+    <description>Köhler, Leng, Lumb</description>
+    <Point><coordinates>5.026750,60.440367,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 3</name>
+    <description>Pollack, Makrelen</description>
+    <Point><coordinates>5.024783,60.457117,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 4</name>
+    <description>Köhler, Leng, Lumb</description>
+    <Point><coordinates>4.996967,60.458317,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 5</name>
+    <description>Pollack, Dorsch</description>
+    <Point><coordinates>5.013100,60.486517,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 6</name>
+    <description>Seehecht, Leng, Lumb, Schellfisch, Wittling</description>
+    <Point><coordinates>5.014650,60.462417,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 7</name>
+    <description>Seehecht, Köhler, Leng, Lumb</description>
+    <Point><coordinates>5.042283,60.426933,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 8</name>
+    <description>Dorsch, Pollack, zum Tiefen Leng</description>
+    <Point><coordinates>5.020750,60.427483,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 9</name>
+    <description>Köhler, Leng, Lumb</description>
+    <Point><coordinates>5.093867,60.428583,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 10</name>
+    <description>Seehecht, Dorsch</description>
+    <Point><coordinates>5.103400,60.430833,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 11</name>
+    <description>Köhler, Leng, Lumb</description>
+    <Point><coordinates>5.132067,60.436300,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Punkt 12</name>
+    <description>Leng, Lumb, zum Flachen Pollack</description>
+    <Point><coordinates>5.112067,60.405150,0</coordinates></Point>
+  </Placemark>
+</Document>
+</kml>
