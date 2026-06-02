@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Askoy2</name>
+  <Placemark>
+    <name>Parken Hytter</name>
+    <description>Unterkunft &amp; Boote</description>
+    <Point><coordinates>5.086520,60.438783,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>1 Smaavær</name>
+    <description>Pollack, Makrele; zum Tiefen Köhler, Leng, Seehecht</description>
+    <Point><coordinates>5.089952,60.432377,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>2 Rotøya</name>
+    <description>Pollack, Köhler, Makrele; zum Tiefen Leng, Lumb</description>
+    <Point><coordinates>5.095552,60.424248,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>3 Ramsøygrunnen</name>
+    <description>Köhler, Pollack; zum Tiefen Leng, Lumb</description>
+    <Point><coordinates>5.057935,60.429568,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>4 Brotet</name>
+    <description>Köhler, Pollack, Dorsch; zum Tiefen Leng</description>
+    <Point><coordinates>5.054225,60.405800,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>5 Litle Brattholmen</name>
+    <description>ab 100 m große Lengs; Achtung, Fahrwasser!</description>
+    <Point><coordinates>5.109328,60.404815,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>6 Gule</name>
+    <description>Pollack, Dorsch, Wittling, Schellfisch, Plattfisch</description>
+    <Point><coordinates>5.131345,60.411139,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>7 Insel Skorpo</name>
+    <description>Pollack, Köhler, ab 120 m gute Lengs</description>
+    <Point><coordinates>5.130443,60.424205,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>8 Plateau</name>
+    <description>Köhler, Leng</description>
+    <Point><coordinates>5.129413,60.436515,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>9 Unterwasserberg</name>
+    <description>Köhler, Leng, Lumb, Rotbarsch</description>
+    <Point><coordinates>5.112933,60.436388,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>10 Abhang</name>
+    <description>Dorsch, Leng, ab Juli viele große Seehechte</description>
+    <Point><coordinates>5.099545,60.432725,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>11 östl. Hanøy</name>
+    <description>Plattfisch, Wittling, Knurrhahn</description>
+    <Point><coordinates>5.100832,60.449007,0</coordinates></Point>
+  </Placemark>
+</Document>
+</kml>
