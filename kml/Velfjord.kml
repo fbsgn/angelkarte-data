@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>Velfjord</name>
+  <Placemark>
+    <name>1 Steinbeißer</name>
+    <description>Steinbeißer – alter Steinbruch</description>
+    <Point><coordinates>12.564694,65.414583,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>2 Heilbutt/Dorsch</name>
+    <description>Heilbutt, Dorsch – Inselkette mit Sandrinnen</description>
+    <Point><coordinates>12.516000,65.458556,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>3 Köhler</name>
+    <description>Köhler – Freiwasserspot</description>
+    <Point><coordinates>12.637194,65.450694,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>4 Heilbutt/Meerforelle</name>
+    <description>Heilbutt, Meerforelle</description>
+    <Point><coordinates>12.776111,65.464333,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>5 Dorsch/Heilbutt</name>
+    <description>Dorsch, Heilbutt – Fähranleger</description>
+    <Point><coordinates>12.392028,65.573278,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>6 Dorsch/Pollack</name>
+    <description>Dorsch, Pollack – Untiefen</description>
+    <Point><coordinates>12.320306,65.583417,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>7 Dorsch/Pollack</name>
+    <description>Dorsch, Pollack – Tiefwasser-Plateaus</description>
+    <Point><coordinates>12.284444,65.610111,0</coordinates></Point>
+  </Placemark>
+</Document>
+</kml>
