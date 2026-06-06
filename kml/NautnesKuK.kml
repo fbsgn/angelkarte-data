@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document>
+  <name>NautnesKuK</name>
+  <Placemark>
+    <name>Schellfischecke 1</name>
+    <description>Schellfisch</description>
+    <Point><coordinates>4.760972,60.670417,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Schellfischecke 2</name>
+    <description>Schellfisch</description>
+    <Point><coordinates>4.726722,60.685028,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Dorschplatz 1</name>
+    <description>Dorsch</description>
+    <Point><coordinates>4.851056,60.634056,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Dorschplatz 2</name>
+    <description>Dorsch</description>
+    <Point><coordinates>4.808056,60.670778,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Lengstelle 1</name>
+    <description>Leng</description>
+    <Point><coordinates>4.759056,60.705556,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Lengstelle 2</name>
+    <description>Leng</description>
+    <Point><coordinates>4.840778,60.671139,0</coordinates></Point>
+  </Placemark>
+  <Placemark>
+    <name>Lengstelle 3</name>
+    <description>Leng</description>
+    <Point><coordinates>4.701028,60.616889,0</coordinates></Point>
+  </Placemark>
+</Document>
+</kml>
