@@ -3,7 +3,7 @@
 **🇩🇪 Deutsch** | [🇬🇧 English](#-fishing-map-norway)
 
 ---
-
+ 
 ## 🇩🇪 Angelkarte Norwegen
 
 > Kostenlose, mobile GPS-Angelkarte für Norwegen – direkt im Browser, keine App nötig.
