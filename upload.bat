@@ -1,67 +1,65 @@
 @echo off
+setlocal
 echo.
 echo ==========================================
 echo  Angelkarte auf GitHub hochladen
 echo ==========================================
 echo.
 
-:: Pruefen ob Git installiert ist
 git --version >nul 2>&1
-if %errorlevel% neq 0 (
+if errorlevel 1 (
     echo FEHLER: Git ist nicht installiert!
-    echo.
-    echo Bitte herunterladen von: https://git-scm.com/download/win
-    echo Nach der Installation dieses Script nochmal starten.
+    echo Download: https://git-scm.com/download/win
     pause
-    exit /b
+    exit /b 1
 )
 
-echo Git gefunden. Weiter...
-echo.
-
-:: In den Norge-Ordner wechseln
 cd /d C:\Norge
 
-:: Git konfigurieren
-git config --local user.name "fbsgn"
-git config --local user.email "deine@email.com"
-
-:: Repository initialisieren falls noch nicht vorhanden
 if not exist ".git" (
     echo Initialisiere Git-Repository...
     git init
     git branch -M main
-    git remote add origin https://github.com/fbsgn/angelkarte.git
+    git remote add origin https://github.com/fbsgn/angelkarte-data.git
 )
 
-:: Dateien hinzufuegen und committen
-echo Dateien werden hinzugefuegt...
-git add index.html upload.bat angelkarte-public.html README.md kml/ sw.js
+:: Remote immer auf das richtige Repo setzen (frueher: angelkarte.git)
+git remote set-url origin https://github.com/fbsgn/angelkarte-data.git
 
-echo Erstelle Commit...
-git commit -m "Angelkarte aktualisiert" 2>nul || echo (Keine neuen Aenderungen)
+:: Nur Web-Dateien hinzufuegen - NIE "git add ." (Ordner enthaelt PDFs, Tokens, Recovery-Keys)
+git add index.html angelkarte-public.html app.js app.css sw.js manifest.json manifest-public.json icon-192.svg icon-512.svg README.md upload.bat kml/
 
-:: Hochladen
+git commit -m "Angelkarte aktualisiert" >nul 2>&1
+if errorlevel 1 echo (Keine neuen Aenderungen zum Committen)
+
+echo.
+echo Hole Aenderungen von GitHub (Spot-Sync-Datei)...
+git pull origin main --rebase --autostash
+if errorlevel 1 (
+    echo FEHLER beim Pull - bitte Konflikte manuell loesen.
+    pause
+    exit /b 1
+)
+
 echo.
 echo Lade hoch zu GitHub...
-echo (Browser-Fenster fuer Anmeldung kann sich oeffnen)
-echo.
-git stash
-git pull origin main --rebase
-git stash pop
 git push -u origin main
+if errorlevel 1 (
+    echo.
+    echo ==========================================
+    echo  FEHLER beim Hochladen.
+    echo  Repo pruefen: https://github.com/fbsgn/angelkarte-data
+    echo ==========================================
+    pause
+    exit /b 1
+)
 
 echo.
 echo ==========================================
-if %errorlevel% equ 0 (
-    echo  FERTIG! Karten sind online unter:
-    echo  Deine Karte:   https://fbsgn.github.io/angelkarte-data/
-    echo  Forum-Version: https://fbsgn.github.io/angelkarte-data/angelkarte-public.html
-) else (
-    echo  FEHLER beim Hochladen.
-    echo  Stelle sicher dass das Repository existiert:
-    echo  https://github.com/new  ^(Name: angelkarte, Public^)
-)
+echo  FERTIG! Online unter:
+echo  Persoenlich:  https://fbsgn.github.io/angelkarte-data/
+echo  Oeffentlich:  https://fbsgn.github.io/angelkarte-data/angelkarte-public.html
+echo  (GitHub Pages braucht ca. 1-2 Minuten)
 echo ==========================================
 echo.
 pause
