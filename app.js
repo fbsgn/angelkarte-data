@@ -638,8 +638,8 @@ if (PUBLIC) {
   try { if (!localStorage.getItem(K.seen)) $('infoModal').classList.add('open'); } catch (e) {}
 } else {
   (async () => {
-    const ut = new URLSearchParams(location.search).get('token');
-    if (ut) { setToken(ut); history.replaceState({}, '', location.pathname); showToast('✅ Token gespeichert – Sync aktiv'); }
+    // Hinweis: ?token=-Übergabe per URL bewusst entfernt (Token landet sonst in Verlauf/Logs). Eintragen nur manuell unter „Sync".
+    if (new URLSearchParams(location.search).has('token')) history.replaceState({}, '', location.pathname);
     setSyncState(getToken() ? 'ok' : 'none');
     const n = await loadStaticKml();
     await syncNow({ silent: true });

@@ -1,104 +1,44 @@
-# 🗺️ Angelkarte – GitHub Upload Anleitung
-# Dein Account: fbsgn
-# Zieladresse: https://fbsgn.github.io/angelkarte/
+ANGELKARTE NORWEGEN - Entwickler-/Upload-Anleitung
+===================================================
+GitHub-Account:   fbsgn
+Repository:       https://github.com/fbsgn/angelkarte-data
+Persoenlich:      https://fbsgn.github.io/angelkarte-data/
+Oeffentlich:      https://fbsgn.github.io/angelkarte-data/angelkarte-public.html
+Lokal:            C:\Norge
 
-============================================================
-SCHRITT 1 – Repository auf GitHub anlegen
-============================================================
+DATEIEN
+-------
+index.html               Stub, personal-Modus (GitHub-Sync, KML-Ordner)
+angelkarte-public.html   Stub, public-Modus (nur lokal, Beispiel-KML)
+app.js / app.css         GESAMTE Logik und Design - gilt fuer beide Versionen
+sw.js                    Service Worker (App network-first, Kacheln cache-first)
+manifest*.json, icon-*   PWA-Installation
+kml/                     KML-Dateien, Liste in kml/index.json pflegen!
+data/angelkarte-sync.json  wird von der App per GitHub-API geschrieben (nicht von Hand aendern)
 
-1. Gehe zu: https://github.com/new
+UPLOAD (Update veroeffentlichen)
+--------------------------------
+Doppelklick auf upload.bat. Das Skript fuegt nur die Web-Dateien hinzu (kein "git add ."),
+holt die Sync-Datei von GitHub (pull --rebase) und pusht. Nach 1-2 Minuten ist es online.
+Der Service Worker laedt App-Dateien network-first - nach dem Upload reicht ein Neuladen
+(bei installierter PWA: einmal schliessen und neu oeffnen).
 
-2. Fülle das Formular aus:
-   - Repository name: angelkarte
-   - Sichtbarkeit: ● Public  (wichtig!)
-   - Alle anderen Felder leer lassen
+NEUE KML HINZUFUEGEN
+--------------------
+1. Datei nach C:\Norge\kml\ kopieren
+2. Dateinamen in kml\index.json eintragen
+3. upload.bat ausfuehren
 
-3. Klicke: [Create repository]
+SYNC EINRICHTEN (Handy/PC)
+--------------------------
+1. GitHub -> Settings -> Developer settings -> Fine-grained token
+   Repository: angelkarte-data, Berechtigung: Contents = Read and write
+2. In der App unten "Sync" antippen, Token einfuegen, Speichern.
+Spots werden pro Eintrag mit Zeitstempel gemergt (neuere Aenderung gewinnt, Loeschungen werden
+als Tombstones mitgefuehrt). Offline angelegte Spots gehen nicht mehr verloren und werden
+beim naechsten Online-Gang hochgeladen.
 
-============================================================
-SCHRITT 2 – index.html hochladen
-============================================================
-
-Methode A – direkt im Browser (empfohlen, kein Git nötig):
-
-1. Du bist jetzt auf der leeren Repository-Seite
-2. Klicke auf: "uploading an existing file"
-   (oder: Add file → Upload files)
-3. Öffne den Windows Explorer, navigiere zu: C:\Norge\
-4. Ziehe die Datei  index.html  ins Browser-Fenster
-5. Scroll nach unten zu "Commit changes"
-6. Nachricht eingeben z.B.: "Angelkarte hinzugefügt"
-7. Klicke: [Commit changes]
-
-============================================================
-SCHRITT 3 – GitHub Pages aktivieren
-============================================================
-
-1. Im Repository oben auf: Settings  klicken
-2. Links im Menü runterscrollen: Pages  klicken
-3. Unter "Branch" auswählen:
-      Branch: main
-      Ordner: / (root)
-4. Klicke: [Save]
-
-⏳ Nach 1-2 Minuten ist die Karte online unter:
-   https://fbsgn.github.io/angelkarte/
-
-============================================================
-SCHRITT 4 – Auf dem Android-Handy einrichten
-============================================================
-
-1. Chrome auf dem Handy öffnen
-2. Diese URL aufrufen:
-      https://fbsgn.github.io/angelkarte/
-
-3. Als App auf Homescreen hinzufügen:
-   - Drei-Punkte-Menü (oben rechts) tippen
-   - "Zum Startbildschirm hinzufügen" wählen
-   - Fertig – startet jetzt wie eine echte App!
-
-4. Beim ersten GPS-Start:
-   - Browser fragt nach Standort-Berechtigung
-   - "Zulassen" wählen
-
-============================================================
-BEDIENUNG DER KARTE
-============================================================
-
-[Karte]   → Zentriert auf deine GPS-Position
-[GPS]     → GPS ein/ausschalten
-           Blauer Punkt = du bist hier
-           Blauer Kreis = Genauigkeit
-
-[Punkte]  → KML-Datei laden
-           Datei antippen oder reinziehen
-           🎣 Marker erscheinen auf der Karte
-           Toggle: Ebene ein-/ausblenden
-           × : Ebene entfernen
-
-[Ebenen]  → Oben rechts, Karte wechseln:
-           🗺️ Kartverket Seekarte (Standard)
-           🏔️ Kartverket Topografie
-           🌍 OpenStreetMap
-           🛰️ Satellitenbild
-
-============================================================
-UPDATES / ÄNDERUNGEN
-============================================================
-
-Neue index.html hochladen:
-1. GitHub → Repository angelkarte öffnen
-2. index.html anklicken
-3. Stift-Symbol (Edit) klicken → oder
-   "Add file → Upload files" und Datei überschreiben
-4. Commit → fertig, nach 1-2 Min. aktualisiert
-
-============================================================
-DEINE LINKS
-============================================================
-
-Repository:  https://github.com/fbsgn/angelkarte
-Live-Karte:  https://fbsgn.github.io/angelkarte/
-Datei lokal: C:\Norge\index.html
-
-============================================================
+SICHERHEIT
+----------
+Nie hochladen: token-qr.html, PDFs, Recovery-Keys (manage-bde*.txt). upload.bat fuegt sie nicht
+hinzu. Empfehlung: .gitignore anlegen (siehe .gitignore in diesem Ordner).

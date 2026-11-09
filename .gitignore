@@ -1,0 +1,9 @@
+# Nie ins Repo
+token-qr.html
+*.pdf
+manage-bde*.txt
+PS *.txt
+index_alt.html
+.vs/
+*.sqlite
+*.vsidx
