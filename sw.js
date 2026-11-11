@@ -1,27 +1,21 @@
 /* Angelkarte – Service Worker
    - App-Dateien (gleiche Origin): network-first (4 s Timeout), Offline-Fallback aus Cache. Updates greifen sofort,
      kein manuelles Cache-Bumpen mehr nötig.
-   - CDN-Bibliotheken (versioniert): cache-first.
+   - Bibliotheken (Leaflet) liegen selbst gehostet in vendor/ – keine Verbindung zu Drittservern beim Seitenaufruf.
    - Kartenkacheln: cache-first mit Größenlimit (Cache-Name bewusst stabil, damit gewärmte Kacheln erhalten bleiben).
    Nur APP_VERSION erhöhen, wenn die Precache-Liste sich ändert. */
-const APP_VERSION = 'v15';
+const APP_VERSION = 'v16';
 const APP_CACHE = 'angelkarte-app-' + APP_VERSION;
 const TILE_CACHE = 'angelkarte-tiles-v14';
 const MAX_TILES = 2500;
 const NET_TIMEOUT = 4000;
 
-const APP_ASSETS = ['./', './index.html', './angelkarte-public.html', './app.js', './app.css', './manifest.json', './manifest-public.json', './icon-192.svg', './icon-512.svg'];
-const CDN_ASSETS = [
-  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css',
-  'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js'
-];
+const APP_ASSETS = ['./', './index.html', './angelkarte-public.html', './app.js', './app.css', './manifest.json', './manifest-public.json', './icon-192.svg', './icon-512.svg', './vendor/leaflet.js', './vendor/leaflet.css', './vendor/leaflet-omnivore.min.js'];
 
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const c = await caches.open(APP_CACHE);
     await Promise.allSettled(APP_ASSETS.map(u => c.add(new Request(u, { cache: 'reload' }))));
-    await Promise.allSettled(CDN_ASSETS.map(u => c.add(new Request(u, { mode: 'cors' }))));
     self.skipWaiting();
   })());
 });
@@ -43,7 +37,6 @@ self.addEventListener('fetch', e => {
   if (url.hostname === 'api.github.com') return;            // Sync nie cachen
   if (isTile(url)) return e.respondWith(tileFirst(req));
   if (url.origin === location.origin) return e.respondWith(networkFirst(req, url));
-  if (url.hostname === 'cdnjs.cloudflare.com') return e.respondWith(cacheFirst(req));
 });
 
 function withTimeout(p, ms, ctrl) {
@@ -64,15 +57,6 @@ async function networkFirst(req, url) {
     if (req.mode === 'navigate') { const idx = await cache.match('./index.html'); if (idx) return idx; }
     throw err;
   }
-}
-
-async function cacheFirst(req) {
-  const cache = await caches.open(APP_CACHE);
-  const hit = await cache.match(req);
-  if (hit) return hit;
-  const res = await fetch(req);
-  if (res && (res.ok || res.type === 'opaque')) cache.put(req, res.clone());
-  return res;
 }
 
 let putCount = 0;

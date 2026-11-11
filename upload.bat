@@ -16,6 +16,12 @@ if errorlevel 1 (
 
 cd /d C:\Norge
 
+if not exist vendor\leaflet.js (
+    echo FEHLER: vendor\leaflet.js fehlt. Bitte zuerst get-vendor.bat ausfuehren.
+    pause
+    exit /b 1
+)
+
 if not exist ".git" (
     echo Initialisiere Git-Repository...
     git init
@@ -27,7 +33,7 @@ if not exist ".git" (
 git remote set-url origin https://github.com/fbsgn/angelkarte-data.git
 
 :: Nur Web-Dateien hinzufuegen - NIE "git add ." (Ordner enthaelt PDFs, Tokens, Recovery-Keys)
-git add index.html angelkarte-public.html app.js app.css sw.js manifest.json manifest-public.json icon-192.svg icon-512.svg README.md ANLEITUNG.txt .gitignore upload.bat kml/
+git add index.html angelkarte-public.html app.js app.css sw.js manifest.json manifest-public.json icon-192.svg icon-512.svg README.md ANLEITUNG.txt .gitignore upload.bat get-vendor.bat vendor/ kml/
 
 git commit -m "Angelkarte aktualisiert" >nul 2>&1
 if errorlevel 1 echo (Keine neuen Aenderungen zum Committen)

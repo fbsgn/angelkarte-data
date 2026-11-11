@@ -33,9 +33,11 @@ Beide Versionen nutzen denselben Code (`app.js` / `app.css`) und unterscheiden s
 - 📂 **KML laden** (Google Earth, Garmin, Navionics …) per Tippen oder Drag & Drop
 - ☁️ **GitHub-Sync** *(nur persönliche Version)*: Spots werden pro Eintrag mit Zeitstempel gemergt – offline angelegte Spots gehen nicht verloren, Löschungen werden mitgeführt
 - 💾 Export/Import als JSON und KML
+- 🌤️ **Wetter-Popup** (Wind, Böen, Wellenhöhe, Strömung, Wassertemperatur, Regen, Prognose bis +36 h) für GPS-Position, Kartenmitte, Spots und KML-Punkte; Warnmarkierung bei erhöhtem Wind/Seegang
 - 🌞 **Hochkontrast-Design für Sonne**, 🌙 Nacht-Design umschaltbar
 - 📴 **Offline nutzbar**: Kartenkacheln rund um die GPS-Position werden vorab gecacht
 - Letzter Kartenausschnitt, Basiskarte und Overlays werden gemerkt
+- 🔒 **Datenschutz**: keine Cookies, kein Tracking, keine Werbung, Spots bleiben lokal. Leaflet wird selbst gehostet (kein CDN), alle optionalen Kartenanbieter (OpenSeaMap, OpenStreetMap, Esri, Tiefendaten) werden erst nach ausdrücklicher, widerrufbarer Zustimmung geladen; nur die Kartverket-Standardkarte lädt sofort. Impressum und Datenschutzerklärung sind in der App enthalten.
 
 ---
 
@@ -62,6 +64,8 @@ angelkarte-data/
 ├── app.js                    # Gesamte Logik (beide Versionen)
 ├── app.css                   # Design (hell/dunkel)
 ├── sw.js                     # Service Worker (Offline, Kachel-Cache)
+├── vendor/                   # Leaflet + omnivore (selbst gehostet)
+├── get-vendor.bat            # lädt vendor/ einmalig herunter
 ├── manifest.json             # PWA persönlich
 ├── manifest-public.json      # PWA öffentlich
 ├── icon-192.svg / icon-512.svg
@@ -77,7 +81,7 @@ angelkarte-data/
 
 ### 🖥️ Lokal testen
 
-`file://` reicht nicht (Service Worker, `fetch`). Im Projektordner einen kleinen Server starten:
+Einmalig `get-vendor.bat` ausführen (lädt Leaflet nach `vendor/`). `file://` reicht nicht (Service Worker, `fetch`). Im Projektordner einen kleinen Server starten:
 
 ```
 cd C:\Norge
@@ -94,6 +98,7 @@ Dann `http://localhost:8000/` öffnen (Public: `/angelkarte-public.html`). Mit F
 2. GitHub Pages aktivieren: **Settings → Pages → Branch: main**
 3. In `app.js` `CFG.repoOwner` / `CFG.repoName` auf deine Werte ändern
 4. Für den Sync: Fine-grained Token mit **Contents: Read & Write** auf dein Repo erstellen und in der App unter „Sync" eintragen
+5. Eigene Angaben fürs Impressum in `app.js` unter `LEGAL` eintragen (Name, Anschrift, E-Mail)
 
 Neue KML: Datei nach `kml/` legen, Namen in `kml/index.json` ergänzen, hochladen.
 
@@ -104,6 +109,7 @@ Neue KML: Datei nach `kml/` legen, Namen in `kml/index.json` ergänzen, hochlade
 | Dienst | Verwendung |
 |---|---|
 | [Kartverket](https://kartverket.no) | Sjøkart, Topo, Tiefendaten |
+| [MET Norway](https://api.met.no) | Wetter (Locationforecast) und Wellen/Strömung (Oceanforecast), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | [OpenSeaMap](https://openseamap.org) | Seezeichen-Overlay |
 | [OpenStreetMap](https://openstreetmap.org) | Basiskarte |
 | [ESRI](https://esri.com) | Satellitenbild |
@@ -135,6 +141,7 @@ Both versions share the same code (`app.js` / `app.css`). The public version sto
 - 📂 **KML import** (Google Earth, Garmin, Navionics …)
 - ☁️ **GitHub sync** *(personal version only)*: per-spot timestamp merge, deletions tracked, offline spots are never lost
 - 💾 Export/import as JSON & KML
+- 🌤️ **Weather popup** (wind, gusts, wave height, current, sea temperature, rain, forecast up to +36 h) for GPS position, map center, spots and KML points – data: MET Norway (CC BY 4.0)
 - 🌞 **High-contrast daylight theme**, 🌙 night theme toggle
 - 📴 **Offline capable** with tile pre-caching around your GPS position
 
@@ -161,7 +168,7 @@ Open `http://localhost:8000/` and check the browser console (F12).
 
 ### 📡 Services used
 
-Kartverket (charts, topo, depth), OpenSeaMap, OpenStreetMap, ESRI, Leaflet, GitHub Pages.
+Kartverket (charts, topo, depth), MET Norway (weather, waves – CC BY 4.0), OpenSeaMap, OpenStreetMap, ESRI, Leaflet, GitHub Pages.
 
 ---
 

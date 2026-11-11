@@ -5,6 +5,9 @@
 
 const PUBLIC = window.APP_MODE === 'public';
 const CFG = { repoOwner: 'fbsgn', repoName: 'angelkarte-data', syncPath: 'data/angelkarte-sync.json' };
+// ── Impressum (§ 5 DDG): VOR DEM VERÖFFENTLICHEN AUSFÜLLEN (Anschrift darf mehrzeilig sein). Solange Felder leer sind, zeigt die App eine Warnung. ──
+const LEGAL = { name: '', address: '', email: '' };
+const CONSENT_KEY = 'angelkarte_consent_v1';
 
 // Storage-Keys (personal-Keys unverändert, damit bestehende Daten erhalten bleiben)
 const K = PUBLIC
@@ -66,19 +69,93 @@ applyTheme(localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light');
 // ───────────────────────── UI aufbauen ─────────────────────────
 const view = lsGet(K.view, {}) || {};
 const baseNames = { sjokart: '🗺️ Kartverket Sjøkart', topo: '🏔️ Kartverket Topo', osm: '🌍 OpenStreetMap', esri: '🛰️ Satellitenbild (ESRI)' };
-let currentBase = baseNames[view.base] ? view.base : 'sjokart';
-const overlayOn = { seaMap: view.seaMap !== false, depth: !!view.depth };
+let currentBase = 'sjokart'; // wird unten nach Prüfung der Einwilligung gesetzt
+// Einwilligung (Art. 6 Abs. 1 lit. a DSGVO): tiles.openseamap.org wird erst nach ausdrücklicher Zustimmung kontaktiert.
+const consent = (() => { try { return JSON.parse(localStorage.getItem(CONSENT_KEY)) || {}; } catch (e) { return {}; } })();
+function setConsent(k, v) { if (v) consent[k] = Date.now(); else delete consent[k]; try { localStorage.setItem(CONSENT_KEY, JSON.stringify(consent)); } catch (e) {} }
+const PROVIDERS = {
+  openseamap: { name: 'OpenSeaMap', host: 'tiles.openseamap.org', what: 'Das Seezeichen-Overlay (Tonnen, Leuchtfeuer, Bojen)' },
+  osm: { name: 'OpenStreetMap', host: 'tile.openstreetmap.org', what: 'Die Basiskarte OpenStreetMap' },
+  esri: { name: 'Esri Satellitenbild', host: 'server.arcgisonline.com', what: 'Das Satellitenbild (Anbieter: Esri, USA – die Daten können in ein Land außerhalb des EWR übertragen werden)' },
+  havbunn: { name: 'Tiefendaten (Kartverket)', host: 'wms.geonorge.no', what: 'Das Tiefendaten-Overlay (Havbunn, Kartverket/Geonorge)' }
+};
+const BASE_PROVIDER = { osm: 'osm', esri: 'esri' }; // sjokart/topo = Standardkarte (Kartverket), ohne Dialog
+if (baseNames[view.base] && (!BASE_PROVIDER[view.base] || consent[BASE_PROVIDER[view.base]])) currentBase = view.base;
+const overlayOn = { seaMap: !!consent.openseamap && view.seaMap !== false, depth: !!consent.havbunn && !!view.depth };
+
+const LEGAL_STAND = '10.11.2026';
+function legalHtml() {
+  const ln = (u, t) => `<a href='${u}' target='_blank' rel='noopener'>${t}</a>`;
+  const ok = LEGAL.name && LEGAL.address && LEGAL.email;
+  const imp = ok
+    ? `<p><b>${esc(LEGAL.name)}</b><br>${esc(LEGAL.address).replace(/\n/g, '<br>')}<br>E-Mail: <a href='mailto:${esc(LEGAL.email)}'>${esc(LEGAL.email)}</a></p>`
+    : `<p class='legal-warn'>⚠️ Angaben fehlen – bitte in <code>app.js</code> unter <code>LEGAL</code> (Name, Anschrift, E-Mail) eintragen.</p>`;
+  const consentList = Object.keys(PROVIDERS).map(k => consent[k]
+    ? `<li>✅ ${esc(PROVIDERS[k].name)} – zugestimmt <button class='popup-btn' data-legal='revoke' data-key='${k}' type='button'>Widerrufen</button></li>`
+    : `<li>${esc(PROVIDERS[k].name)} – keine Einwilligung, es wird nichts geladen</li>`).join('');
+  return `<h2>Impressum &amp; Datenschutz</h2>
+<h3>Impressum</h3><p>Angaben gemäß § 5 DDG:</p>${imp}
+<p>Privates, nicht-kommerzielles Hobbyprojekt – ohne Werbung und ohne Einnahmen.</p>
+<h3>Haftungsausschluss</h3>
+<p>Die Karte ist <b>keine Navigationshilfe</b>. Kartenmaterial, Tiefen-, Wetter- und Seegangsdaten sowie eingetragene Spots können fehlerhaft, unvollständig oder veraltet sein. Für die Sicherheit auf dem Wasser gelten amtliche Seekarten, Seewetterberichte und gesunder Menschenverstand. Die Nutzung erfolgt auf eigene Gefahr. Für Inhalte externer Anbieter sind allein diese verantwortlich.</p>
+<h3>Quellen</h3>
+<p>Karten: ${ln('https://www.kartverket.no/', 'Kartverket')}, OpenStreetMap-Mitwirkende (ODbL), Esri, OpenSeaMap-Mitwirkende. Wetter und Wellen: ${ln('https://www.met.no/', 'MET Norway')} (${ln('https://creativecommons.org/licenses/by/4.0/', 'CC BY 4.0')}). Software: ${ln('https://leafletjs.com/', 'Leaflet')} (BSD-2-Clause).</p>
+<h3>Datenschutz – Kurzfassung</h3>
+<p><b>Wir erheben und speichern keine personenbezogenen Daten von dir.</b> Es gibt kein Benutzerkonto, keine Cookies, kein Tracking, keine Analyse- oder Werbedienste und keine eigene Datenbank. Spots, KML-Dateien und Einstellungen bleiben ausschließlich im Speicher deines Browsers auf deinem Gerät. Technisch unvermeidbar: Dein Gerät verbindet sich beim Laden der Seite und der Karte <b>direkt mit den unten genannten Servern</b>, die dabei deine IP-Adresse sehen. Darauf haben wir weder Einfluss noch Zugriff.</p>
+<h3>1. Verantwortlicher</h3><p>Siehe Impressum.</p>
+<h3>2. Hosting (GitHub Pages)</h3>
+<p>Diese Seite wird über GitHub Pages ausgeliefert (GitHub, Inc., USA, ein Unternehmen von Microsoft). Beim Aufruf verarbeitet GitHub technisch notwendige Verbindungsdaten (u. a. IP-Adresse, Zeitpunkt, aufgerufene Datei, Browser-Informationen) in Server-Logs. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (sicherer und stabiler Betrieb). Mehr dazu: ${ln('https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement', 'Datenschutzerklärung von GitHub')}. Programmbibliotheken (Leaflet) und Schriften werden <b>nicht</b> von Drittservern nachgeladen, sondern von derselben Adresse.</p>
+<h3>3. Lokale Speicherung im Browser</h3>
+<p>Die App speichert auf deinem Gerät (localStorage, Cache-Speicher): deine Spots, geladene KML-Dateien, letzten Kartenausschnitt, gewählte Karte und Overlays, Design (hell/dunkel), deine Einwilligungen, zuletzt abgerufene Wetterdaten sowie für den Offline-Betrieb App-Dateien und Kartenkacheln. Diese Daten werden nicht an uns übertragen und nicht für Cookies, Tracking oder Profilbildung verwendet. Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TDDDG (für den von dir gewünschten Dienst erforderlich). Löschen: Website-Daten im Browser löschen${PUBLIC ? ' oder im Menü „Punkte“ → „Alles löschen“' : ''}. Bitte sichere wichtige Spots vorher per „Export JSON“.</p>
+<h3>4. Standort (GPS)</h3>
+<p>Dein Standort wird nur nach Aktivierung von „GPS“ und deiner Freigabe im Browser verwendet. Er wird nur auf deinem Gerät angezeigt und weder gespeichert noch an uns gesendet. Beachte: Bei aktivem GPS lädt die App Kartenkacheln rund um deine Position für den Offline-Betrieb vor. Dem jeweiligen Kartenanbieter (Punkt 5) wird dadurch ungefähr dein Aufenthaltsort erkennbar.</p>
+<h3>5. Kartendienste</h3>
+<p>Karten werden <b>direkt von den Servern der Anbieter</b> geladen. Übertragen werden jeweils deine IP-Adresse, die angefragte Kachel (entspricht dem Kartenausschnitt), der Zeitpunkt, Browser-/Geräteinformationen und die Adresse dieser Seite (Referrer).</p>
+<ul>
+<li><b>Kartverket</b> (Norwegen, EWR): Sjøkart und Topo über cache.kartverket.no. Das ist die Standardkarte und Grundfunktion der App (Art. 6 Abs. 1 lit. b/f DSGVO). Ohne diese Verbindung kann keine Karte angezeigt werden.</li>
+<li>Optional und jeweils <b>nur nach deiner ausdrücklichen Einwilligung</b> (Art. 6 Abs. 1 lit. a DSGVO): <b>OpenSeaMap</b> (tiles.openseamap.org), <b>OpenStreetMap</b> (tile.openstreetmap.org, OpenStreetMap Foundation), <b>Esri Satellitenbild</b> (server.arcgisonline.com, Esri, USA – Übermittlung in ein Drittland möglich) und <b>Tiefendaten</b> (wms.geonorge.no, Kartverket/Geonorge). Ohne Zustimmung wird keine Verbindung aufgebaut.</li>
+</ul>
+<p><b>Deine Einwilligungen</b> (jederzeit widerrufbar, Wirkung für die Zukunft):</p><ul>${consentList}</ul>
+<h3>6. Wetter &amp; Wellen (MET Norway)</h3>
+<p>Nur wenn du „Wetter“ antippst, sendet dein Gerät die Koordinaten des gewählten Punkts (auf 4 Nachkommastellen gerundet) und deine IP-Adresse an api.met.no (Norwegisches Meteorologisches Institut, Norwegen/EWR). Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (von dir angeforderte Funktion).</p>
+<h3>7. MarineTraffic</h3>
+<p>„Schiffe“ öffnet nur einen Link zu marinetraffic.com in einem neuen Tab, mit der aktuellen Kartenmitte in der Adresse. Daten werden erst übertragen, wenn du den Link anklickst. Danach gilt die Datenschutzerklärung von MarineTraffic.</p>
+${PUBLIC ? '' : `<h3>8. GitHub-Sync (nur persönliche Version)</h3><p>Ist ein Token eingetragen, werden Spots über die GitHub-API (api.github.com) im Repository des Betreibers gespeichert. Das Token liegt nur lokal in diesem Browser.</p>`}
+<h3>Deine Rechte</h3>
+<p>Dir stehen die Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch (Art. 15–21 DSGVO) sowie ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde zu. Da wir keine personenbezogenen Daten von dir speichern, betreffen diese Rechte vor allem die oben genannten Anbieter. Erteilte Einwilligungen kannst du jederzeit mit Wirkung für die Zukunft widerrufen (Art. 7 Abs. 3 DSGVO).</p>
+<p style='color:var(--text-2);font-size:13px'>Stand: ${LEGAL_STAND}</p>
+<div class='modal-actions'><button class='modal-btn primary' id='closeLegal' type='button'>Schließen</button></div>`;
+}
+function openLegal() { $('legalBody').innerHTML = legalHtml(); $('legalModal').classList.add('open'); $('legalModal').querySelector('.modal-card').scrollTop = 0; }
+let pendingConsent = null;
+function askConsent(key, onYes) {
+  const p = PROVIDERS[key]; pendingConsent = { key, onYes };
+  $('consentTitle').textContent = `${p.name} aktivieren?`;
+  $('consentBody').innerHTML = `<p>${esc(p.what)} wird <b>direkt vom Server ${esc(p.host)}</b> geladen. Dabei erhält der Betreiber dieses Servers deine <b>IP-Adresse</b>, den angefragten Kartenausschnitt, den Zeitpunkt, Browser-Informationen und die Adresse dieser Seite. Wir haben darauf keinen Zugriff.</p><p>Ohne deine Zustimmung wird <b>keine</b> Verbindung zu ${esc(p.name)} aufgebaut. Du kannst die Zustimmung jederzeit unter „Impressum &amp; Datenschutz“ widerrufen.</p>`;
+  $('consentModal').classList.add('open');
+}
+function closeConsent() { pendingConsent = null; $('consentModal').classList.remove('open'); }
+async function revokeConsent(key) {
+  if (!PROVIDERS[key]) return;
+  setConsent(key, false);
+  if (key === 'openseamap' && overlayOn.seaMap) setSeamap(false);
+  if (key === 'havbunn' && overlayOn.depth) setDepth(false);
+  if (BASE_PROVIDER[currentBase] === key) switchBase('sjokart');
+  const host = PROVIDERS[key].host;
+  try { const c = await caches.open('angelkarte-tiles-v14'); for (const r of await c.keys()) { const h = new URL(r.url).hostname; if (h === host || h.endsWith('.' + host)) await c.delete(r); } } catch (e) {}
+  showToast('Einwilligung widerrufen'); openLegal();
+}
 
 function buildUI() {
   const nav5 = PUBLIC
     ? '<button class="nav-btn" id="navInfo" aria-label="Hilfe"><span class="ic">ℹ️</span><span>Hilfe</span></button>'
     : '<button class="nav-btn" id="navSync" aria-label="Sync und Token"><span class="ic" id="navSyncIc">☁️</span><span>Sync</span></button>';
-  const radios = Object.keys(baseNames).map(k => `<label class="layer-option"><input type="radio" name="layer" value="${k}" ${k === currentBase ? 'checked' : ''}/> ${baseNames[k]}</label>`).join('');
+  const radios = Object.keys(baseNames).map(k => `<label class="layer-option"><input type="radio" name="layer" value="${k}" ${k === currentBase ? 'checked' : ''}/> ${baseNames[k]}${BASE_PROVIDER[k] ? ' <small>· nur mit Zustimmung</small>' : ''}</label>`).join('');
   const publicActions = PUBLIC ? '<button class="action-btn full danger" id="btnClearAll">🗑️ Alles löschen</button>' : '';
   const extraModal = PUBLIC ? `
 <div class="modal" id="infoModal"><div class="modal-card">
   <h2>⚓ Angelkarte Norwegen</h2>
-  <p>Kostenlose GPS-Angelkarte für Norwegen – läuft im Browser, keine App nötig. Alle Daten bleiben <b>nur auf deinem Gerät</b>.</p>
+  <p>Kostenlose GPS-Angelkarte für Norwegen – läuft im Browser, keine App nötig. Kein Tracking, keine Cookies, keine Werbung: Deine Spots und Einstellungen bleiben <b>nur auf deinem Gerät</b>. Karten lädt dein Gerät direkt vom Anbieter: die Standardkarte von Kartverket sofort, alle optionalen Karten und Overlays (unter „Ebenen“) erst nach deiner Zustimmung. Details: <a href="#" id="infoLegal">Impressum &amp; Datenschutz</a>.</p>
   <h3>📍 GPS</h3><ul><li>„GPS" unten antippen, „Zentrieren" bringt die Karte zurück zu dir. Das Display bleibt bei aktivem GPS an.</li></ul>
   <h3>📌 Spots</h3><ul><li>„Spot" antippen und auf die Karte tippen – oder Karte lange gedrückt halten.</li><li>Im Menü „Punkte": „Spot an meiner Position" setzt direkt einen Spot per GPS.</li><li>Spot antippen: bearbeiten, Koordinaten kopieren, löschen.</li></ul>
   <h3>📂 KML</h3><ul><li>„Punkte" öffnen, KML-Datei antippen oder hineinziehen (Google Earth, Garmin, Navionics …).</li></ul>
@@ -103,20 +180,24 @@ function buildUI() {
 <div id="topbar">
   <div class="chip app-title">⚓ Angelkarte<small>${PUBLIC ? 'Norwegen · öffentlich' : 'Norwegen · Sjøkart'}</small></div>
   <div class="spacer"></div>
+  <button class="btn" id="btnWx" aria-label="Wetter und Wellen">🌤️</button>
   <button class="btn" id="btnLayers" aria-label="Kartenebenen">🗺️ Ebenen</button>
 </div>
 <div id="gpsStatus"></div>
 <div id="modeBanner"><span>📍 Auf die Karte tippen, um den Spot zu setzen</span><button id="modeCancel" type="button">Abbrechen</button></div>
 <div id="layerPanel">
   <div class="panel-title">Basiskarte</div>${radios}
+  <div class="legal-note">Kartverket ist die Standardkarte. Alle anderen Karten und Overlays werden erst nach deiner Zustimmung vom jeweiligen Anbieter geladen (siehe Datenschutz).</div>
   <hr class="panel-divider"/>
   <div class="panel-title">Overlays</div>
-  <div class="overlay-row"><div class="overlay-label">⚓ OpenSeaMap<small>Bojen, Tonnen, Leuchtfeuer</small></div><div class="toggle-sw ${overlayOn.seaMap ? 'on' : ''}" id="toggleSeamap" role="switch"></div></div>
-  <div class="overlay-row"><div class="overlay-label">🌊 Tiefendaten<small>Havbunn – Kartverket</small></div><div class="toggle-sw ${overlayOn.depth ? 'on' : ''}" id="toggleDepth" role="switch"></div></div>
+  <div class="overlay-row"><div class="overlay-label">⚓ OpenSeaMap<small>Bojen, Tonnen, Leuchtfeuer · nur mit Zustimmung</small></div><div class="toggle-sw ${overlayOn.seaMap ? 'on' : ''}" id="toggleSeamap" role="switch"></div></div>
+  <div class="overlay-row"><div class="overlay-label">🌊 Tiefendaten<small>Havbunn – Kartverket · nur mit Zustimmung</small></div><div class="toggle-sw ${overlayOn.depth ? 'on' : ''}" id="toggleDepth" role="switch"></div></div>
   <div class="overlay-row"><div class="overlay-label">🚢 Schiffe<small>MarineTraffic (externer Tab)</small></div><button class="popup-btn" id="btnMarineTraffic" type="button">Öffnen ↗</button></div>
   <hr class="panel-divider"/>
   <div class="panel-title">Design</div>
   <div class="overlay-row"><div class="overlay-label">🌙 Nacht-Design<small>Dunkel – für Abend/Nacht</small></div><div class="toggle-sw" id="toggleTheme" role="switch"></div></div>
+  <hr class="panel-divider"/>
+  <div class="overlay-row"><div class="overlay-label">🔒 Datenschutz<small>Impressum &amp; Einwilligungen</small></div><button class="popup-btn" id="btnLegal" type="button">Öffnen</button></div>
 </div>
 <div id="sheet">
   <div class="sheet-head">
@@ -152,7 +233,13 @@ function buildUI() {
   <label for="spotName">Name</label><input id="spotName" type="text" placeholder="z. B. Köhlerkante" autocomplete="off"/>
   <label for="spotNote">Notiz</label><textarea id="spotNote" placeholder="Tiefe, Drift, Köder, Bemerkung …"></textarea>
   <div class="modal-actions"><button class="modal-btn" id="spotCancel" type="button">Abbrechen</button><button class="modal-btn primary" id="spotSave" type="button">Speichern</button></div>
-</div></div>${extraModal}`);
+</div></div>${extraModal}
+<div class='modal' id='consentModal'><div class='modal-card'>
+  <h2 id='consentTitle'>Aktivieren?</h2>
+  <div id='consentBody'></div>
+  <div class='modal-actions'><button class='modal-btn' id='consentNo' type='button'>Nein</button><button class='modal-btn primary' id='consentYes' type='button'>Zustimmen &amp; aktivieren</button></div>
+</div></div>
+<div class='modal' id='legalModal'><div class='modal-card'><div id='legalBody'></div></div></div>`);
   $('toggleTheme').classList.toggle('on', document.documentElement.getAttribute('data-theme') === 'dark');
 }
 buildUI();
@@ -209,6 +296,7 @@ function spotPopupHtml(s) {
     `<div class="popup-coord">${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}</div>` +
     `<div class="popup-actions"><button class="popup-btn" data-act="edit" data-id="${esc(s.id)}">✏️ Bearbeiten</button>` +
     `<button class="popup-btn" data-act="copy" data-ll="${ll}">📋 Kopieren</button>` +
+    `<button class="popup-btn" data-act="wx" data-lat="${s.lat}" data-lng="${s.lng}" data-label="${esc(s.name)}">🌤️ Wetter</button>` +
     `<button class="popup-btn danger" data-act="del" data-id="${esc(s.id)}">🗑️ Löschen</button></div>`;
 }
 function createSpotMarker(spot) {
@@ -279,16 +367,18 @@ function setSpotMode(on) {
 }
 
 // Popup-Aktionen (Leaflet stoppt Klick-Bubbling → Listener direkt am Popup)
-map.on('popupopen', e => {
-  const el = e.popup.getElement(); if (!el) return;
+function wirePopup(el) {
+  if (!el) return;
   el.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', ev => {
     ev.preventDefault();
     const act = b.dataset.act;
     if (act === 'copy') copyText(b.dataset.ll);
     else if (act === 'del') { map.closePopup(); deleteSpot(b.dataset.id); }
     else if (act === 'edit') { map.closePopup(); openSpotModal({ id: b.dataset.id }); }
+    else if (act === 'wx' || act === 'wxrefresh') showWeather(+b.dataset.lat, +b.dataset.lng, b.dataset.label || 'Position', act === 'wxrefresh');
   }));
-});
+}
+map.on('popupopen', e => wirePopup(e.popup.getElement()));
 
 // ───────────────────────── KML ─────────────────────────
 function saveKmlStore() {
@@ -307,7 +397,7 @@ function loadKmlText(name, kmlText, opt) {
     if (!isFinite(lat) || !isFinite(lng)) return;
     const pname = pm.querySelector('name')?.textContent?.trim() || 'Fangpunkt';
     const desc = htmlToText(pm.querySelector('description')?.textContent?.trim() || '');
-    const html = `<div class="popup-title">${esc(pname)}</div>${desc ? `<div class="popup-desc">${escBr(desc)}</div>` : ''}<div class="popup-coord">${lat.toFixed(5)}, ${lng.toFixed(5)}</div><div class="popup-actions"><button class="popup-btn" data-act="copy" data-ll="${lat.toFixed(6)}, ${lng.toFixed(6)}">📋 Kopieren</button></div>`;
+    const html = `<div class="popup-title">${esc(pname)}</div>${desc ? `<div class="popup-desc">${escBr(desc)}</div>` : ''}<div class="popup-coord">${lat.toFixed(5)}, ${lng.toFixed(5)}</div><div class="popup-actions"><button class="popup-btn" data-act="copy" data-ll="${lat.toFixed(6)}, ${lng.toFixed(6)}">📋 Kopieren</button><button class="popup-btn" data-act="wx" data-lat="${lat}" data-lng="${lng}" data-label="${esc(pname)}">🌤️ Wetter</button></div>`;
     L.marker([lat, lng], { icon: L.divIcon({ html: `<div class="fish-marker" style="background:${esc(color)}"><span>🎣</span></div>`, className: '', iconSize: [36, 36], iconAnchor: [18, 36], popupAnchor: [0, -38] }) })
       .addTo(group).bindPopup(html, { maxWidth: 300 });
     count++;
@@ -496,7 +586,7 @@ function startGps() {
     const { latitude: lat, longitude: lng, accuracy, altitude } = pos.coords;
     if (!gpsMarker) {
       const icon = L.divIcon({ html: '<div class="gps-pulse"><div class="gps-ring"></div><div class="gps-ring2"></div><div class="gps-dot"></div></div>', className: '', iconSize: [56, 56], iconAnchor: [28, 28] });
-      gpsMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map).bindPopup(() => { const p = gpsMarker.getLatLng(); return `<div class="popup-title">📍 Mein Standort</div><div class="popup-coord">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div><div class="popup-desc">Genauigkeit ± ${Math.round(accuracy)} m${altitude ? '<br>Höhe ' + Math.round(altitude) + ' m' : ''}</div><div class="popup-actions"><button class="popup-btn" data-act="copy" data-ll="${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}">📋 Kopieren</button></div>`; });
+      gpsMarker = L.marker([lat, lng], { icon, zIndexOffset: 1000 }).addTo(map).bindPopup(() => { const p = gpsMarker.getLatLng(); return `<div class="popup-title">📍 Mein Standort</div><div class="popup-coord">${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}</div><div class="popup-desc">Genauigkeit ± ${Math.round(accuracy)} m${altitude ? '<br>Höhe ' + Math.round(altitude) + ' m' : ''}</div><div class="popup-actions"><button class="popup-btn" data-act="copy" data-ll="${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}">📋 Kopieren</button><button class="popup-btn" data-act="wx" data-lat="${p.lat}" data-lng="${p.lng}" data-label="Meine Position">🌤️ Wetter</button></div>`; });
       gpsCircle = L.circle([lat, lng], { radius: accuracy, color: '#00614a', fillColor: '#12b08d', fillOpacity: .1, weight: 2, dashArray: '4 4' }).addTo(map);
       if (!gpsCentered) { map.flyTo([lat, lng], 14, { duration: 1.5 }); gpsCentered = true; }
     } else { gpsMarker.setLatLng([lat, lng]); gpsCircle.setLatLng([lat, lng]).setRadius(accuracy); }
@@ -541,6 +631,118 @@ map.on('zoomend', () => { if (gpsMarker) { const p = gpsMarker.getLatLng(); mayb
 
 // ───────────────────────── Sheet / Panels ─────────────────────────
 function setSheetCollapsed(c) { $('sheet').classList.toggle('collapsed', !!c); try { localStorage.setItem(K.sheet, c ? 'collapsed' : 'open'); } catch (e) {} }
+
+// ───────────────────────── Wetter & Wellen (MET Norway) ─────────────────────────
+// Locationforecast 2.0 + Oceanforecast 2.0, Lizenz CC BY 4.0. Direkter Browser-Aufruf ist für kleine Apps erlaubt
+// (Identifikation über Origin/Referer). Deshalb: keine eigenen Header (sonst Preflight), Koordinaten max. 4 Nachkommastellen.
+const WX_KEY = 'angelkarte_wx_v1', WX_TTL = 30 * 60e3;
+const wxMem = new Map();
+const compass = d => (d == null || !isFinite(d)) ? '–' : ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'][Math.round(d / 45) % 8];
+const bft = ms => { const l = [0.3, 1.6, 3.4, 5.5, 8, 10.8, 13.9, 17.2, 20.8, 24.5, 28.5, 32.7]; let b = 0; while (b < l.length && ms >= l[b]) b++; return b; };
+const num = (v, d) => (typeof v === 'number' && isFinite(v)) ? v.toFixed(d || 0) : '–';
+function wxEmoji(sym) {
+  const s = String(sym || ''), night = /_night/.test(s);
+  if (/thunder/.test(s)) return '⛈️'; if (/snow/.test(s)) return '❄️'; if (/sleet/.test(s)) return '🌨️';
+  if (/showers/.test(s)) return '🌦️'; if (/rain/.test(s)) return '🌧️'; if (/fog/.test(s)) return '🌫️';
+  if (/clearsky/.test(s)) return night ? '🌙' : '☀️'; if (/fair/.test(s)) return night ? '🌙' : '🌤️';
+  if (/partlycloudy/.test(s)) return '⛅'; if (/cloudy/.test(s)) return '☁️'; return '🌡️';
+}
+async function wxGet(url) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), 12000);
+  try { const r = await fetch(url, { signal: c.signal }); if (!r.ok) { const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; } return await r.json(); }
+  finally { clearTimeout(t); }
+}
+function wxNormLoc(j) {
+  const ts = j && j.properties && j.properties.timeseries; if (!Array.isArray(ts)) return [];
+  return ts.slice(0, 70).map(e => {
+    const d = e.data || {}, i = (d.instant && d.instant.details) || {}, n1 = d.next_1_hours, n6 = d.next_6_hours, n12 = d.next_12_hours;
+    const p1 = n1 && n1.details && n1.details.precipitation_amount, p6 = n6 && n6.details && n6.details.precipitation_amount;
+    const sm = (n1 || n6 || n12 || {}).summary;
+    return { t: Date.parse(e.time), temp: i.air_temperature, wind: i.wind_speed, gust: i.wind_speed_of_gust, dir: i.wind_from_direction, cloud: i.cloud_area_fraction, sym: (sm && sm.symbol_code) || '', rain: p1 != null ? p1 : (p6 != null ? p6 / 6 : null) };
+  });
+}
+function wxNormOce(j) {
+  const ts = j && j.properties && j.properties.timeseries; if (!Array.isArray(ts)) return [];
+  return ts.slice(0, 70).map(e => {
+    const i = (e.data && e.data.instant && e.data.instant.details) || {};
+    return { t: Date.parse(e.time), wave: i.sea_surface_wave_height, waveDir: i.sea_surface_wave_from_direction, cur: i.sea_water_speed, curDir: i.sea_water_to_direction, sst: i.sea_water_temperature };
+  });
+}
+async function loadWeather(lat, lng, force) {
+  const key = lat.toFixed(2) + ',' + lng.toFixed(2), m = wxMem.get(key);
+  if (!force && m && Date.now() - m.t < WX_TTL) return m;
+  const la = lat.toFixed(4), lo = lng.toFixed(4);
+  const [a, b] = await Promise.allSettled([
+    wxGet(`https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=${la}&lon=${lo}`),
+    wxGet(`https://api.met.no/weatherapi/oceanforecast/2.0/complete?lat=${la}&lon=${lo}`)
+  ]);
+  const loc = a.status === 'fulfilled' ? wxNormLoc(a.value) : [], oce = b.status === 'fulfilled' ? wxNormOce(b.value) : [];
+  if (!loc.length && !oce.length) {
+    const st = (lsGet(WX_KEY, {}) || {})[key];
+    if (st && ((st.loc && st.loc.length) || (st.oce && st.oce.length))) return Object.assign({ stale: true }, st);
+    throw a.reason || b.reason || new Error('keine Daten');
+  }
+  const d = { t: Date.now(), loc, oce };
+  wxMem.set(key, d);
+  const store = lsGet(WX_KEY, {}) || {}; store[key] = d;
+  Object.keys(store).sort((x, y) => store[y].t - store[x].t).slice(12).forEach(k => delete store[k]);
+  lsSet(WX_KEY, store);
+  return d;
+}
+function wxNear(arr, t) {
+  let best = null, bd = Infinity;
+  arr.forEach(e => { const d = Math.abs(e.t - t); if (d < bd) { bd = d; best = e; } });
+  return bd <= 3.5 * 3600e3 ? best : null;
+}
+// Grobe Richtwerte für kleine Boote (keine Sicherheitsempfehlung): 1 = erhöht, 2 = stark
+function wxLevel(w) {
+  const wind = w.wind || 0, g = w.gust || 0, wave = w.wave || 0;
+  return (wind >= 14 || g >= 18 || wave >= 3) ? 2 : (wind >= 10 || g >= 14 || wave >= 2) ? 1 : 0;
+}
+function wxHtml(d, label, lat, lng) {
+  const now = Date.now(), W = wxNear(d.loc, now) || {}, O = wxNear(d.oce, now) || {};
+  const lvl = wxLevel({ wind: W.wind, gust: W.gust, wave: O.wave }), today = new Date(now).toDateString();
+  const fmt = t => { const x = new Date(t), hm = x.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); return x.toDateString() === today ? hm : x.toLocaleDateString('de-DE', { weekday: 'short' }) + ' ' + hm; };
+  const row = (k, v) => `<div class="wx-k">${k}</div><div class="wx-v">${v}</div>`;
+  let grid = '';
+  if (d.loc.length) {
+    grid += row('💨 Wind', `${compass(W.dir)} ${num(W.wind, 1)} m/s (Bft ${W.wind == null ? '–' : bft(W.wind)})${W.gust != null ? ', Böen ' + num(W.gust, 1) : ''}`);
+    grid += row('☁️ Wolken', `${num(W.cloud)} % · Regen ${num(W.rain, 1)} mm/h`);
+  }
+  if (d.oce.length) {
+    grid += row('🌊 Welle', O.wave != null ? `${num(O.wave, 1)} m aus ${compass(O.waveDir)}` : '–');
+    grid += row('🧭 Strömung', O.cur != null ? `${num(O.cur, 2)} m/s nach ${compass(O.curDir)}` : '–');
+    grid += row('🌡️ Wasser', `${num(O.sst, 1)} °C`);
+  } else grid += row('🌊 Welle', '<i>keine Meeresdaten für diesen Punkt</i>');
+  const rows = [0, 3, 6, 9, 12, 18, 24, 36].map(h => {
+    const tt = now + h * 3600e3, l = wxNear(d.loc, tt) || {}, o = wxNear(d.oce, tt) || {};
+    if (!l.t && !o.t) return '';
+    return `<tr class="wx-l${wxLevel({ wind: l.wind, gust: l.gust, wave: o.wave })}"><td>${fmt(l.t || o.t)}</td><td>${wxEmoji(l.sym)}</td><td>${compass(l.dir)} ${num(l.wind)}${l.gust != null ? ' (' + num(l.gust) + ')' : ''}</td><td>${o.wave != null ? num(o.wave, 1) : '–'}</td><td>${num(l.rain, 1)}</td></tr>`;
+  }).join('');
+  const attrs = `data-lat="${lat}" data-lng="${lng}" data-label="${esc(label)}"`;
+  return `<div class="wx"><div class="popup-title">${wxEmoji(W.sym)} ${esc(label)}</div>` +
+    `<div class="popup-coord">${lat.toFixed(4)}, ${lng.toFixed(4)} · Luft ${num(W.temp, 1)} °C</div>` +
+    (lvl ? `<div class="wx-warn wx-l${lvl}">⚠️ Wind/Seegang erhöht (Richtwerte ab 10 m/s bzw. 2 m Welle)</div>` : '') +
+    `<div class="wx-grid">${grid}</div>` +
+    (rows ? `<table class="wx-tab"><thead><tr><th>Zeit</th><th></th><th>Wind m/s (Böe)</th><th>Welle m</th><th>Regen</th></tr></thead><tbody>${rows}</tbody></table>` : '') +
+    `<div class="wx-foot">Stand ${fmt(d.t)}${d.stale ? ' · gespeichert (offline)' : ''} · Daten: <a href="https://www.met.no/" target="_blank" rel="noopener">MET Norway</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>)</div>` +
+    `<div class="popup-actions"><button class="popup-btn" data-act="wxrefresh" ${attrs}>🔄 Aktualisieren</button></div></div>`;
+}
+async function showWeather(lat, lng, label, force) {
+  const popup = L.popup({ maxWidth: 340, minWidth: 270, autoPanPadding: [12, 90] }).setLatLng([lat, lng])
+    .setContent(`<div class="wx"><div class="popup-title">🌤️ ${esc(label)}</div><div class="popup-desc">Lade Wetter …</div></div>`).openOn(map);
+  try {
+    const d = await loadWeather(lat, lng, force);
+    if (!map.hasLayer(popup)) return;
+    popup.setContent(wxHtml(d, label, lat, lng));
+  } catch (e) {
+    if (!map.hasLayer(popup)) return;
+    const why = e && e.status === 429 ? 'Zu viele Anfragen – kurz warten.' : e && e.status === 403 ? 'MET hat die Anfrage abgelehnt (403).' : 'Keine Verbindung oder keine Daten für diesen Punkt.';
+    popup.setContent(`<div class="wx"><div class="popup-title">🌤️ ${esc(label)}</div><div class="popup-desc">${why}</div><div class="popup-actions"><button class="popup-btn" data-act="wxrefresh" data-lat="${lat}" data-lng="${lng}" data-label="${esc(label)}">🔄 Erneut versuchen</button></div></div>`);
+    console.warn('Wetter', e);
+  }
+  wirePopup(popup.getElement());
+}
 function closeLayerPanel() { $('layerPanel').classList.remove('open'); }
 function openToken() {
   const t = getToken(); $('tokenModal').classList.add('open'); $('tokenInput').value = '';
@@ -600,17 +802,41 @@ $('navKml').addEventListener('click', () => {
 });
 $('sheetCollapseBtn').addEventListener('click', () => setSheetCollapsed(!$('sheet').classList.contains('collapsed')));
 
+function syncBaseRadios(v) { document.querySelectorAll('[name=layer]').forEach(x => { x.checked = x.value === (v || currentBase); }); }
+function switchBase(v) { map.removeLayer(baseLayers[currentBase]); currentBase = v; map.addLayer(baseLayers[currentBase]); reorderOverlays(); syncBaseRadios(); saveViewPrefs(); }
 document.querySelectorAll('[name=layer]').forEach(r => r.addEventListener('change', () => {
-  map.removeLayer(baseLayers[currentBase]); currentBase = r.value; map.addLayer(baseLayers[currentBase]); reorderOverlays(); saveViewPrefs();
-  closeLayerPanel(); showToast('Karte: ' + baseNames[currentBase].replace(/^\S+\s/, ''));
+  const prov = BASE_PROVIDER[r.value], apply = () => { switchBase(r.value); closeLayerPanel(); showToast('Karte: ' + baseNames[currentBase].replace(/^\S+\s/, '')); };
+  if (prov && !consent[prov]) { syncBaseRadios(); closeLayerPanel(); askConsent(prov, apply); return; }
+  apply();
 }));
+function setSeamap(on, sw) {
+  overlayOn.seaMap = on; on ? map.addLayer(layerSeamap) : map.removeLayer(layerSeamap);
+  (sw || $('toggleSeamap')).classList.toggle('on', on); reorderOverlays(); saveViewPrefs();
+}
 $('toggleSeamap').addEventListener('click', function () {
-  overlayOn.seaMap = !overlayOn.seaMap; overlayOn.seaMap ? map.addLayer(layerSeamap) : map.removeLayer(layerSeamap);
-  this.classList.toggle('on', overlayOn.seaMap); reorderOverlays(); saveViewPrefs();
+  if (overlayOn.seaMap) return setSeamap(false, this);
+  if (consent.openseamap) return setSeamap(true, this);
+  closeLayerPanel(); askConsent('openseamap', () => setSeamap(true)); // erst nach Zustimmung wird tiles.openseamap.org kontaktiert
 });
+function setDepth(on, sw) {
+  overlayOn.depth = on; on ? map.addLayer(layerDepth) : map.removeLayer(layerDepth);
+  (sw || $('toggleDepth')).classList.toggle('on', on); reorderOverlays(); saveViewPrefs();
+}
+$('consentYes').addEventListener('click', () => { const p = pendingConsent; if (!p) return; setConsent(p.key, true); closeConsent(); p.onYes(); showToast('✅ ' + PROVIDERS[p.key].name + ' aktiviert'); });
+$('consentNo').addEventListener('click', closeConsent);
+$('consentModal').addEventListener('click', e => { if (e.target.id === 'consentModal') closeConsent(); });
+$('btnLegal').addEventListener('click', () => { closeLayerPanel(); openLegal(); });
+$('legalModal').addEventListener('click', e => {
+  if (e.target.id === 'legalModal' || e.target.closest('#closeLegal')) { $('legalModal').classList.remove('open'); return; }
+  const rb = e.target.closest('[data-legal=revoke]'); if (rb) revokeConsent(rb.dataset.key);
+});
+if ($('infoLegal')) $('infoLegal').addEventListener('click', e => { e.preventDefault(); openLegal(); });
+map.attributionControl.setPrefix(`<a href='#' id='lnkLegal' role='button'>Impressum &amp; Datenschutz</a> · <a href='https://leafletjs.com' target='_blank' rel='noopener'>Leaflet</a>`);
+map.attributionControl.getContainer().addEventListener('click', e => { if (e.target.closest('#lnkLegal')) { e.preventDefault(); openLegal(); } });
 $('toggleDepth').addEventListener('click', function () {
-  overlayOn.depth = !overlayOn.depth; overlayOn.depth ? map.addLayer(layerDepth) : map.removeLayer(layerDepth);
-  this.classList.toggle('on', overlayOn.depth); reorderOverlays(); saveViewPrefs();
+  if (overlayOn.depth) return setDepth(false, this);
+  if (consent.havbunn) return setDepth(true, this);
+  closeLayerPanel(); askConsent('havbunn', () => setDepth(true));
 });
 $('toggleTheme').addEventListener('click', function () {
   const dark = document.documentElement.getAttribute('data-theme') !== 'dark';
@@ -623,6 +849,11 @@ $('btnMarineTraffic').addEventListener('click', () => {
 });
 $('btnLayers').addEventListener('click', e => { e.stopPropagation(); const p = $('layerPanel'); p.classList.toggle('open'); if (p.classList.contains('open')) $('sheet').classList.remove('open'), $('navKml').classList.remove('active'); });
 document.addEventListener('click', e => { if (!e.target.closest('#layerPanel') && !e.target.closest('#btnLayers')) closeLayerPanel(); });
+$('btnWx').addEventListener('click', e => {
+  e.stopPropagation(); closeLayerPanel(); $('sheet').classList.remove('open'); $('navKml').classList.remove('active');
+  const p = gpsMarker ? gpsMarker.getLatLng() : map.getCenter();
+  showWeather(p.lat, p.lng, gpsMarker ? 'Meine Position' : 'Kartenmitte');
+});
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLayerPanel(); closeSpotModal(); setSpotMode(false); } });
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
